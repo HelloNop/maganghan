@@ -1,6 +1,8 @@
 import React from "react";
 import { BottomNav } from "@/components/ui/BottomNav";
 
+export const dynamic = "force-dynamic";
+
 export default function InternLayout({
   children,
 }: {

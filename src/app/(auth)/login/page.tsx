@@ -29,7 +29,7 @@ export default function LoginPage() {
       setError(result.error);
       setIsLoading(false);
     } else {
-      router.push("/intern");
+      router.push("/");
       router.refresh();
     }
   };
