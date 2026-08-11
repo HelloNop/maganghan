@@ -29,7 +29,7 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 | ------------------ | ---------------------------------------------------- |
 | Frontend + Backend | Next.js (App Router) + TypeScript (strict)           |
 | Styling            | Tailwind CSS v4                                      |
-| Database           | PostgreSQL (Neon DB — free tier 512MB)                |
+| Database           | PostgreSQL (provider fleksibel: Supabase, Neon, Railway, dll.) |
 | ORM                | Drizzle ORM (type-safe, serverless-friendly)         |
 | Autentikasi        | Auth.js v5 (NextAuth) — Credentials provider         |
 | Storage foto       | Cloudinary (free tier 25GB)                          |
@@ -37,7 +37,7 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 | Face detection     | face-api.js / MediaPipe Face Detection (client-side) |
 
 **Catatan stack**:
-- **Neon DB** dipilih karena free tier yang generous (512MB, auto-suspend/wake), tanpa risiko pause 7 hari seperti Supabase free
+- **PostgreSQL** dipilih sebagai database utama; provider bisa fleksibel (Supabase, Neon, Railway, dll.) sesuai ketersediaan dan lokasi server terdekat
 - **Drizzle ORM** dipilih karena ringan di serverless (zero cold start), type-safe, dan SQL-like syntax
 - **Auth.js Credentials** dipilih karena akun dibuat oleh admin (bukan self-register), sehingga butuh kontrol penuh atas tabel users tanpa sinkronisasi 2 sumber data
 - **Foto** dikompres & di-resize (maks. ±800×800px, format WebP) di sisi client sebelum upload untuk efisiensi kuota dan bandwidth

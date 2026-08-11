@@ -12,7 +12,7 @@
 | ---------------- | -------------------------------------------- |
 | Framework        | Next.js (App Router)                         |
 | Language         | TypeScript (strict mode)                     |
-| Database         | PostgreSQL via Neon DB                       |
+| Database         | PostgreSQL (any provider: Supabase, Neon, Railway, etc.) |
 | ORM              | Drizzle ORM                                  |
 | Authentication   | Auth.js v5 (Credentials provider)            |
 | Styling          | Tailwind CSS v4                              |
@@ -20,7 +20,7 @@
 | Face Detection   | face-api.js or MediaPipe Face Detection      |
 | Hosting          | Vercel                                       |
 
-- Do NOT introduce Prisma, Supabase client, or other ORMs.
+- Do NOT introduce Prisma or other ORMs. Use Drizzle ORM only.
 - Do NOT use Pages Router. Always use App Router (`app/` directory).
 - Do NOT use `any` type. Define proper types/interfaces for all data.
 
@@ -40,7 +40,7 @@ src/
 ├── lib/                  # Shared utilities
 │   ├── db/               # Drizzle schema, migrations, connection
 │   │   ├── schema.ts     # Drizzle table definitions
-│   │   ├── index.ts      # DB connection (Neon serverless)
+│   │   ├── index.ts      # DB connection (PostgreSQL via Drizzle)
 │   │   └── migrations/   # Drizzle migration files
 │   ├── auth/             # Auth.js configuration
 │   ├── validators/       # Zod schemas for input validation
@@ -76,7 +76,7 @@ src/
 ## Security
 
 - Never expose `service` or `admin` API keys to the client.
-- Use Next.js middleware for route protection.
+- Use `proxy.ts` (Next.js proxy convention) for route protection — not `middleware.ts` (deprecated in this version).
 - Validate all user inputs with Zod on the server side, even if validated on the client.
 - Use HTTPS in production (Vercel handles this).
 - Implement rate limiting on auth endpoints.

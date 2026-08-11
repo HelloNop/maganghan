@@ -45,8 +45,9 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/intern", nextUrl));
   }
 
-  if (isInternRoute && role !== "intern" && role !== "admin") {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  // Admin mencoba akses route intern — redirect ke dashboard admin
+  if (isInternRoute && role !== "intern") {
+    return NextResponse.redirect(new URL("/admin", nextUrl));
   }
 
   return NextResponse.next();
