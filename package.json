@@ -1,0 +1,49 @@
+{
+  "name": "maganghan",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:seed": "npx tsx src/lib/db/seed.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.5.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.38.3",
+    "drizzle-zod": "^0.7.0",
+    "face-api.js": "^0.22.2",
+    "lucide-react": "^0.475.0",
+    "next": "^15.1.7",
+    "next-auth": "5.0.0-beta.25",
+    "postgres": "^3.4.9",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.17.17",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.30.4",
+    "eslint": "^9.19.0",
+    "eslint-config-next": "^15.1.7",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
