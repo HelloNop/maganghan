@@ -6,6 +6,7 @@ import { users, workUnits, positions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { loginSchema, changePasswordSchema } from "@/lib/validators/auth";
+import { checkLoginRateLimit, recordLoginFailure, clearLoginAttempts } from "@/lib/utils/rateLimit";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
@@ -18,14 +19,24 @@ export async function loginAction(formData: FormData) {
     };
   }
 
+  // Rate limit check
+  const rateLimit = checkLoginRateLimit(email);
+  if (!rateLimit.allowed) {
+    return {
+      error: `Terlalu banyak percobaan login. Coba lagi dalam ${rateLimit.retryAfterSeconds} detik.`,
+    };
+  }
+
   try {
     await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+    clearLoginAttempts(email);
     return { success: true };
   } catch (error) {
+    recordLoginFailure(email);
     return {
       error: "Email atau password salah",
     };

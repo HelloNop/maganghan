@@ -8,7 +8,15 @@ import { eq, and, ilike, count, sql, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
-const DEFAULT_PASSWORD = "magang123";
+function generateDefaultPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let password = "Mg";
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  password += "!";
+  return password;
+}
 
 export interface InternListItem {
   id: string;
@@ -114,7 +122,8 @@ export async function createInternAction(data: {
       return { error: "Email sudah terdaftar." };
     }
 
-    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const defaultPassword = generateDefaultPassword();
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     await db.insert(users).values({
       nama: data.nama.trim(),
@@ -130,7 +139,7 @@ export async function createInternAction(data: {
     });
 
     revalidatePath("/admin/anak-magang");
-    return { success: true };
+    return { success: true, defaultPassword };
   } catch (error) {
     console.error("Create intern error:", error);
     return { error: "Gagal menambahkan anak magang." };
@@ -227,7 +236,8 @@ export async function resetInternPasswordAction(id: string) {
   }
 
   try {
-    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const defaultPassword = generateDefaultPassword();
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     await db
       .update(users)
@@ -238,7 +248,7 @@ export async function resetInternPasswordAction(id: string) {
       .where(eq(users.id, id));
 
     revalidatePath("/admin/anak-magang");
-    return { success: true };
+    return { success: true, defaultPassword };
   } catch (error) {
     console.error("Reset password error:", error);
     return { error: "Gagal mereset password." };
@@ -263,12 +273,22 @@ export async function bulkImportInternsAction(
   const errors: { row: number; message: string }[] = [];
   let successCount = 0;
 
+  const MAX_IMPORT_ROWS = 200;
+  if (rows.length > MAX_IMPORT_ROWS) {
+    return { error: `Maksimal ${MAX_IMPORT_ROWS} data per import. Anda mengirim ${rows.length} data.` };
+  }
+
+  if (rows.length === 0) {
+    return { error: "Tidak ada data untuk diimpor." };
+  }
+
   try {
     // Prefetch work units and positions for matching
     const allWorkUnits = await db.select().from(workUnits);
     const allPositions = await db.select().from(positions);
 
-    const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const defaultPassword = generateDefaultPassword();
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -349,6 +369,7 @@ export async function bulkImportInternsAction(
       successCount,
       errorCount: errors.length,
       errors: errors.slice(0, 20), // Limit error reporting
+      defaultPassword,
     };
   } catch (error) {
     console.error("Bulk import error:", error);

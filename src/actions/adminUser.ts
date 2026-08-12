@@ -19,7 +19,13 @@ export interface AdminListItem {
 const createAdminSchema = z.object({
   nama: z.string().min(2, "Nama minimal 2 karakter"),
   email: z.string().email("Email tidak valid"),
-  password: z.string().min(6, "Password minimal 6 karakter"),
+  password: z
+    .string()
+    .min(8, "Password minimal 8 karakter")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+      "Password harus mengandung huruf besar, huruf kecil, dan angka"
+    ),
 });
 
 export async function getAdminUsersAction(): Promise<AdminListItem[]> {
@@ -133,8 +139,8 @@ export async function resetAdminUserPasswordAction(
     return { error: "Unauthorized" };
   }
 
-  if (!newPassword || newPassword.length < 6) {
-    return { error: "Password minimal 6 karakter." };
+  if (!newPassword || newPassword.length < 8) {
+    return { error: "Password minimal 8 karakter." };
   }
 
   try {

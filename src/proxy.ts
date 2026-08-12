@@ -15,9 +15,9 @@ export default auth((req) => {
   const isInternRoute = nextUrl.pathname.startsWith("/intern");
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
   const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
-  const isApiImageRoute = nextUrl.pathname.startsWith("/api/image");
+  // const isApiImageRoute = nextUrl.pathname.startsWith("/api/image");
 
-  if (isApiAuthRoute || isApiImageRoute) {
+  if (isApiAuthRoute) {
     return NextResponse.next();
   }
 

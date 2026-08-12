@@ -1,5 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
 
+const authSecret = process.env.AUTH_SECRET;
+if (!authSecret) {
+  throw new Error("AUTH_SECRET environment variable is required. Generate one with: npx auth secret");
+}
+
 export const authConfig: NextAuthConfig = {
   providers: [],
   pages: {
@@ -29,5 +34,5 @@ export const authConfig: NextAuthConfig = {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.AUTH_SECRET || "fallback-secret-key-for-development-mode",
+  secret: authSecret,
 };

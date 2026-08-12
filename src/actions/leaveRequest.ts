@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { leaveRequestSchema } from "@/lib/validators/leaveRequest";
 import { db } from "@/lib/db";
 import { leaveRequests, attendance } from "@/lib/db/schema";
 import { uploadImageToR2 } from "@/lib/utils/r2";
@@ -20,8 +21,17 @@ export async function submitLeaveRequestAction(formData: FormData) {
   const keterangan = formData.get("keterangan") as string;
   const file = formData.get("fileSurat") as File | null;
 
-  if (!jenis || !tanggalMulai || !tanggalSelesai || !keterangan) {
-    return { error: "Semua kolom bertanda * wajib diisi." };
+  const validated = leaveRequestSchema.safeParse({
+    jenis,
+    tanggalMulai,
+    tanggalSelesai,
+    keterangan,
+  });
+
+  if (!validated.success) {
+    return {
+      error: validated.error.errors[0]?.message || "Input tidak valid",
+    };
   }
 
   // 1. Validate date order
@@ -83,9 +93,29 @@ export async function submitLeaveRequestAction(formData: FormData) {
     let fileSuratUrl: string | undefined = undefined;
 
     if (file && file.size > 0) {
+      // Validate file size (max 5MB)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        return { error: "Ukuran file maksimal 5MB." };
+      }
+
+      // Validate file type
+      const ALLOWED_TYPES = [
+        "application/pdf",
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+      ];
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        return {
+          error: "Format file tidak didukung. Gunakan PDF, JPG, PNG, atau WebP.",
+        };
+      }
+
       const buffer = await file.arrayBuffer();
       const base64 = Buffer.from(buffer).toString("base64");
-      const mimeType = file.type || "application/pdf";
+      const mimeType = file.type;
       const dataUrl = `data:${mimeType};base64,${base64}`;
       fileSuratUrl = await uploadImageToR2(dataUrl, "surat_izin");
     }

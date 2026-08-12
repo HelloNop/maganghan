@@ -8,6 +8,7 @@ import { calculateDistanceInMeters } from "@/lib/utils/geo";
 import { uploadImageToR2 } from "@/lib/utils/r2";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { attendanceCheckInSchema } from "@/lib/validators/attendance";
 
 function getTodayDateString(): string {
   const today = new Date();
@@ -31,6 +32,15 @@ export async function submitCheckInAction(
   const session = await auth();
   if (!session?.user) {
     return { error: "Sesi telah berakhir. Silakan login kembali." };
+  }
+
+  const validated = attendanceCheckInSchema.safeParse({
+    fotoDataUrl,
+    lat: userLat,
+    lng: userLng,
+  });
+  if (!validated.success) {
+    return { error: validated.error.errors[0]?.message || "Input tidak valid" };
   }
 
   const userId = session.user.id;
@@ -143,6 +153,15 @@ export async function submitCheckOutAction(
   const session = await auth();
   if (!session?.user) {
     return { error: "Sesi telah berakhir. Silakan login kembali." };
+  }
+
+  const validated = attendanceCheckInSchema.safeParse({
+    fotoDataUrl,
+    lat: userLat,
+    lng: userLng,
+  });
+  if (!validated.success) {
+    return { error: validated.error.errors[0]?.message || "Input tidak valid" };
   }
 
   const userId = session.user.id;

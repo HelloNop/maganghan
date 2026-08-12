@@ -8,26 +8,28 @@ import { revalidatePath } from "next/cache";
 import webpush from "web-push";
 
 // Default fallback VAPID keys if env is not configured yet
-const DEFAULT_VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  "BBzuS-c50FJFFHvVffDQ8ZPMbJOWaoVCr3e-w4O8WSU4b00TOOMQsDIvt1X5fjW293Ios9hLM40m9lLHKl_yspE";
-const DEFAULT_VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY || "eawYt9x8lBq1cmA0vrW42viEyW65oyEZvAND1MsFYSs";
 
-function configureWebPush() {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
+function configureWebPush(): boolean {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
   const email = process.env.VAPID_SUBJECT || "mailto:admin@maganghan.com";
+
+  if (!publicKey || !privateKey) {
+    console.warn("VAPID keys not configured. Push notifications disabled.");
+    return false;
+  }
 
   try {
     webpush.setVapidDetails(email, publicKey, privateKey);
+    return true;
   } catch (err) {
     console.warn("WebPush VAPID setup warning:", err);
+    return false;
   }
 }
 
 export async function getVapidPublicKeyAction(): Promise<string> {
-  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 }
 
 export async function subscribePushNotificationAction(subscription: {
@@ -85,7 +87,9 @@ export async function sendTestPushNotificationAction() {
     return { error: "Unauthorized" };
   }
 
-  configureWebPush();
+  if (!configureWebPush()) {
+    return { error: "Kunci VAPID belum dikonfigurasi. Hubungi administrator." };
+  }
 
   try {
     const subs = await db
@@ -152,7 +156,9 @@ export async function sendAttendanceReminderPushAction() {
     return { error: "Unauthorized" };
   }
 
-  configureWebPush();
+  if (!configureWebPush()) {
+    return { error: "Kunci VAPID belum dikonfigurasi." };
+  }
 
   try {
     const today = new Date();

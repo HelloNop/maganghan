@@ -85,52 +85,55 @@ export async function approveLeaveRequestAction(id: string) {
       return { error: "Pengajuan sudah diproses." };
     }
 
-    // Update leave request status
-    await db
-      .update(leaveRequests)
-      .set({
-        statusApproval: "approved",
-        approvedBy: session.user.id,
-      })
-      .where(eq(leaveRequests.id, id));
+    // Use transaction to ensure consistency
+    await db.transaction(async (tx) => {
+      // Update leave request status
+      await tx
+        .update(leaveRequests)
+        .set({
+          statusApproval: "approved",
+          approvedBy: session.user.id,
+        })
+        .where(eq(leaveRequests.id, id));
 
-    // Create attendance records for the leave period
-    const startDate = new Date(request[0].tanggalMulai);
-    const endDate = new Date(request[0].tanggalSelesai);
-    const status = request[0].jenis === "izin" ? "izin" : "sakit";
+      // Create attendance records for the leave period
+      const startDate = new Date(request[0].tanggalMulai);
+      const endDate = new Date(request[0].tanggalSelesai);
+      const status = request[0].jenis === "izin" ? "izin" : "sakit";
 
-    for (
-      let d = new Date(startDate);
-      d <= endDate;
-      d.setDate(d.getDate() + 1)
-    ) {
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      for (
+        let d = new Date(startDate);
+        d <= endDate;
+        d.setDate(d.getDate() + 1)
+      ) {
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-      // Check if attendance record already exists
-      const existing = await db
-        .select({ id: attendance.id })
-        .from(attendance)
-        .where(
-          and(
-            eq(attendance.userId, request[0].userId),
-            eq(attendance.tanggal, dateStr)
+        // Check if attendance record already exists
+        const existing = await tx
+          .select({ id: attendance.id })
+          .from(attendance)
+          .where(
+            and(
+              eq(attendance.userId, request[0].userId),
+              eq(attendance.tanggal, dateStr)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (existing.length === 0) {
-        await db.insert(attendance).values({
-          userId: request[0].userId,
-          tanggal: dateStr,
-          status,
-        });
-      } else {
-        await db
-          .update(attendance)
-          .set({ status })
-          .where(eq(attendance.id, existing[0].id));
+        if (existing.length === 0) {
+          await tx.insert(attendance).values({
+            userId: request[0].userId,
+            tanggal: dateStr,
+            status,
+          });
+        } else {
+          await tx
+            .update(attendance)
+            .set({ status })
+            .where(eq(attendance.id, existing[0].id));
+        }
       }
-    }
+    });
 
     revalidatePath("/admin/approval");
     revalidatePath("/admin");
