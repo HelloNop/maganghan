@@ -1,12 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitLeaveRequestAction } from "@/actions/leaveRequest";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Send, Upload, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
+import {
+  Send,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  FileText,
+  X,
+  Image as ImageIcon,
+  Eye,
+} from "lucide-react";
 
 export function LeaveRequestForm() {
   const router = useRouter();
@@ -16,10 +26,46 @@ export function LeaveRequestForm() {
   const [tanggalSelesai, setTanggalSelesai] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [fileSurat, setFileSurat] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+
+  // Generate object URL for file preview
+  useEffect(() => {
+    if (!fileSurat) {
+      setFilePreviewUrl(null);
+      return;
+    }
+
+    if (fileSurat.type.startsWith("image/")) {
+      const url = URL.createObjectURL(fileSurat);
+      setFilePreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setFilePreviewUrl(null);
+    }
+  }, [fileSurat]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFileSurat(e.target.files[0]);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFileSurat(null);
+    setFilePreviewUrl(null);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +105,7 @@ export function LeaveRequestForm() {
       setTanggalSelesai("");
       setKeterangan("");
       setFileSurat(null);
+      setFilePreviewUrl(null);
       router.refresh();
     }
   };
@@ -114,30 +161,84 @@ export function LeaveRequestForm() {
           />
         </div>
 
-        {/* Upload File Section */}
+        {/* Upload File & Interactive Preview Section */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold uppercase tracking-wider text-[#3d4947]">
-            Unggah Lampiran (Opsional)
+            Unggah Lampiran Surat / Dokter (Opsional)
           </label>
-          <label className="border-2 border-dashed border-gray-200 hover:border-[#006761] bg-[#f9f9f9] hover:bg-[#f0faf8] rounded-2xl p-4 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-1.5">
-            <Upload className="w-6 h-6 text-[#006761]" />
-            <span className="text-xs font-medium text-gray-700">
-              {fileSurat ? fileSurat.name : "Klik untuk mengunggah atau seret file ke sini"}
-            </span>
-            <span className="text-[10px] text-gray-400">
-              (Maks 5MB: JPG, PNG, PDF)
-            </span>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFileSurat(e.target.files[0]);
-                }
-              }}
-            />
-          </label>
+
+          {!fileSurat ? (
+            <label className="border-2 border-dashed border-gray-200 hover:border-[#006761] bg-[#f9f9f9] hover:bg-[#f0faf8] rounded-2xl p-5 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-1.5 group">
+              <div className="w-10 h-10 rounded-full bg-[#006761]/10 text-[#006761] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Upload className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-gray-800 mt-1">
+                Klik untuk mengunggah berkas
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">
+                Mendukung Foto (JPG, PNG, WebP) atau Dokumen PDF (Maks 10 MB)
+              </span>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </label>
+          ) : (
+            <div className="p-3.5 bg-[#f0faf8] border border-[#006761]/30 rounded-2xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 overflow-hidden">
+                {/* Image Preview Thumbnail or PDF Icon */}
+                {filePreviewUrl ? (
+                  <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-[#006761]/30 shrink-0 bg-white shadow-2xs">
+                    <img
+                      src={filePreviewUrl}
+                      alt="Preview Lampiran"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-red-100 border border-red-200 text-red-700 flex flex-col items-center justify-center shrink-0">
+                    <FileText className="w-6 h-6" />
+                    <span className="text-[8px] font-extrabold tracking-tighter uppercase">
+                      PDF
+                    </span>
+                  </div>
+                )}
+
+                {/* File Info */}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#1a1c1c] truncate">
+                    {fileSurat.name}
+                  </p>
+                  <p className="text-[11px] text-[#006761] font-medium mt-0.5">
+                    {formatFileSize(fileSurat.size)} • {fileSurat.type || "Dokumen"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <label className="p-1.5 text-xs font-semibold text-[#006761] hover:bg-white rounded-lg cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                  Ganti
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                  title="Hapus Lampiran"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Reason Textarea */}

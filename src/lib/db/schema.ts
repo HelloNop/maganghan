@@ -27,14 +27,14 @@ export const leaveStatusEnum = pgEnum("leave_status", [
 // Master Work Units
 export const workUnits = pgTable("work_units", {
   id: uuid("id").defaultRandom().primaryKey(),
-  nama: text("nama").notNull(),
+  nama: text("nama").notNull().unique(),
   kode: text("kode").unique(),
 });
 
 // Master Positions
 export const positions = pgTable("positions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  nama: text("nama").notNull(),
+  nama: text("nama").notNull().unique(),
 });
 
 // Users

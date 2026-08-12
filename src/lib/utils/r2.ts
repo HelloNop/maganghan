@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 /**
  * Cloudflare R2 Storage Utility (S3-Compatible)
@@ -46,11 +46,15 @@ export async function uploadImageToR2(
   }
 
   try {
-    // 1. Extract base64 payload & content type
-    const matches = dataUrl.match(/^data:(image\/[a-zA-Z0-9-+.]+);base64,(.+)$/);
+    // 1. Extract base64 payload & content type (supports images, pdf, docs, etc.)
+    const matches = dataUrl.match(/^data:([a-zA-Z0-9-+\/.]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
-      // If it's already a HTTP URL, return as is
-      if (dataUrl.startsWith("http://") || dataUrl.startsWith("https://")) {
+      // If it's already a HTTP URL or relative path, return as is
+      if (
+        dataUrl.startsWith("http://") ||
+        dataUrl.startsWith("https://") ||
+        dataUrl.startsWith("/api/image")
+      ) {
         return dataUrl;
       }
       return dataUrl;
@@ -74,18 +78,53 @@ export async function uploadImageToR2(
 
     await r2.client.send(command);
 
-    // 4. Construct Public or Custom Domain URL
-    if (r2.publicDomain) {
+    // 4. Construct Public URL
+    // If publicDomain is set and NOT an r2.dev domain (e.g. custom domain like https://cdn.domain.com), use it directly
+    if (
+      r2.publicDomain &&
+      !r2.publicDomain.includes(".r2.dev") &&
+      !r2.publicDomain.includes("cloudflarestorage.com")
+    ) {
       const baseUrl = r2.publicDomain.endsWith("/")
         ? r2.publicDomain.slice(0, -1)
         : r2.publicDomain;
       return `${baseUrl}/${filename}`;
     }
 
-    return `https://${r2.bucketName}.${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`;
+    // Default to Next.js API Proxy route to bypass Internet Baik / Telkomsel .r2.dev DNS blocking
+    return `/api/image/${filename}`;
   } catch (error) {
     console.error("Cloudflare R2 upload error:", error);
     // Return original data URL as fallback so app never crashes
     return dataUrl;
+  }
+}
+
+/**
+ * Fetches an object directly from Cloudflare R2 Bucket using S3 API.
+ */
+export async function getImageFromR2(
+  key: string
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const r2 = getR2Client();
+  if (!r2) return null;
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: r2.bucketName,
+      Key: key,
+    });
+
+    const response = await r2.client.send(command);
+    if (!response.Body) return null;
+
+    const byteArray = await response.Body.transformToByteArray();
+    const buffer = Buffer.from(byteArray);
+    const contentType = response.ContentType || "image/webp";
+
+    return { buffer, contentType };
+  } catch (error) {
+    console.error("GetObjectFromR2 error:", error);
+    return null;
   }
 }

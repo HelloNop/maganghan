@@ -4,7 +4,7 @@ dotenv.config({ path: ".env" });
 
 import { db } from "./index";
 import { workUnits, positions, users, appSettings } from "./schema";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 async function main() {
@@ -25,18 +25,20 @@ async function main() {
   }
 
   // 1. Seed Work Units
-  const [divisiIT] = await db
+  await db
     .insert(workUnits)
     .values([
       { nama: "Divisi Teknologi Informasi", kode: "IT" },
       { nama: "Sekretariat & Hubungan Masyarakat", kode: "SEK" },
       { nama: "Divisi SDM & Perencanaan", kode: "SDM" },
     ])
-    .onConflictDoNothing()
-    .returning();
+    .onConflictDoNothing();
 
-  // 2. Seed Positions
-  const [posFrontend] = await db
+  const allWorkUnits = await db.select().from(workUnits);
+  const divisiIT = allWorkUnits.find((u) => u.kode === "IT");
+
+  // 2. Seed Positions (Using onConflictDoNothing with unique constraint)
+  await db
     .insert(positions)
     .values([
       { nama: "Frontend Developer Intern" },
@@ -44,8 +46,12 @@ async function main() {
       { nama: "UI/UX Designer Intern" },
       { nama: "Administrative Assistant Intern" },
     ])
-    .onConflictDoNothing()
-    .returning();
+    .onConflictDoNothing();
+
+  const allPositionsList = await db.select().from(positions);
+  const posFrontend = allPositionsList.find(
+    (p) => p.nama === "Frontend Developer Intern"
+  );
 
   // 3. Seed App Settings
   await db
