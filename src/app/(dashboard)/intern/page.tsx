@@ -37,6 +37,7 @@ export default async function InternDashboardPage() {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Asia/Jakarta",
   };
   const dateFormatted = now.toLocaleDateString("id-ID", options);
 
@@ -44,6 +45,7 @@ export default async function InternDashboardPage() {
     ? new Date(todayAttendance.jamMasuk).toLocaleTimeString("id-ID", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Asia/Jakarta",
       })
     : "-- : --";
 
@@ -51,6 +53,7 @@ export default async function InternDashboardPage() {
     ? new Date(todayAttendance.jamKeluar).toLocaleTimeString("id-ID", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Asia/Jakarta",
       })
     : "-- : --";
 

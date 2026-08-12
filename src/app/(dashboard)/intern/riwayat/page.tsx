@@ -28,6 +28,7 @@ export default async function RiwayatPage() {
       day: "numeric",
       month: "long",
       year: "numeric",
+      timeZone: "Asia/Jakarta",
     });
   }
 
@@ -66,6 +67,7 @@ export default async function RiwayatPage() {
               ? new Date(item.jamMasuk).toLocaleTimeString("id-ID", {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Asia/Jakarta",
                 })
               : "--:--";
 
@@ -73,6 +75,7 @@ export default async function RiwayatPage() {
               ? new Date(item.jamKeluar).toLocaleTimeString("id-ID", {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Asia/Jakarta",
                 })
               : "--:--";
 
