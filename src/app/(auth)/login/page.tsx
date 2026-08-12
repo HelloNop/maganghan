@@ -68,7 +68,7 @@ export default function LoginPage() {
             <Input
               label="Email"
               type="email"
-              placeholder="nama@magang.local"
+              placeholder="nama@instansi.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

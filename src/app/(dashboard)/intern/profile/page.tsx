@@ -23,7 +23,7 @@ export default async function ProfilePage() {
 
   const instansiName = instansiNameSetting || "Maganghan";
   const userName = profile?.nama || "Anak Magang";
-  const userEmail = profile?.email || "intern@magang.local";
+  const userEmail = profile?.email || "intern@instansi.com";
   const userRole = profile?.role || "intern";
   const unitKerja = profile?.unitKerja || "Belum diatur";
   const posisi = profile?.posisi || "Anak Magang";
