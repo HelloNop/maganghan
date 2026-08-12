@@ -22,6 +22,7 @@ import {
   FileText,
   HeartPulse,
   Info,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -384,15 +385,24 @@ export function InternDetailModal({
                     )}
                     {selectedDay.attendance.fotoMasukUrl && (
                       <div className="pt-2">
-                        <p className="text-[11px] text-gray-400 mb-1">Foto Masuk:</p>
-                        <img
-                          src={selectedDay.attendance.fotoMasukUrl}
-                          alt="Foto Absen Masuk"
+                        <p className="text-[11px] font-medium text-gray-500 mb-1 flex items-center gap-1">
+                          <Camera className="w-3 h-3 text-emerald-600" /> Foto Masuk:
+                        </p>
+                        <div
                           onClick={() =>
                             setPreviewImage(selectedDay.attendance!.fotoMasukUrl)
                           }
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                        />
+                          className="relative group w-20 h-20 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 cursor-pointer shadow-2xs hover:shadow-md transition-all"
+                        >
+                          <img
+                            src={selectedDay.attendance.fotoMasukUrl}
+                            alt="Foto Absen Masuk"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                            Perbesar
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -417,15 +427,24 @@ export function InternDetailModal({
                     )}
                     {selectedDay.attendance.fotoKeluarUrl && (
                       <div className="pt-2">
-                        <p className="text-[11px] text-gray-400 mb-1">Foto Keluar:</p>
-                        <img
-                          src={selectedDay.attendance.fotoKeluarUrl}
-                          alt="Foto Absen Keluar"
+                        <p className="text-[11px] font-medium text-gray-500 mb-1 flex items-center gap-1">
+                          <Camera className="w-3 h-3 text-amber-600" /> Foto Keluar:
+                        </p>
+                        <div
                           onClick={() =>
                             setPreviewImage(selectedDay.attendance!.fotoKeluarUrl)
                           }
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                        />
+                          className="relative group w-20 h-20 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 cursor-pointer shadow-2xs hover:shadow-md transition-all"
+                        >
+                          <img
+                            src={selectedDay.attendance.fotoKeluarUrl}
+                            alt="Foto Absen Keluar"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                            Perbesar
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -446,17 +465,19 @@ export function InternDetailModal({
         </p>
       )}
 
-      {/* Image Preview Modal */}
+      {/* Image Preview Lightbox Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4">
-          <div className="relative max-w-lg w-full bg-white rounded-2xl p-4">
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black font-bold text-xl"
-            >
-              ✕
-            </button>
-            <h4 className="text-sm font-bold text-[#1a1c1c] mb-3">Preview Foto Selfie</h4>
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+          <div className="relative max-w-lg w-full bg-white rounded-2xl p-4 shadow-2xl space-y-3">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <h4 className="text-xs font-bold text-[#1a1c1c]">Preview Foto Selfie Absensi</h4>
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <img
               src={previewImage}
               alt="Preview Selfie"

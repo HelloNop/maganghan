@@ -19,7 +19,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {
     return {
-      namaInstansi: "Green Attendance",
+      namaInstansi: "Maganghan",
       jamMasuk: "08:00",
       jamKeluar: "17:00",
       officeLat: "",
@@ -36,7 +36,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
     }
 
     return {
-      namaInstansi: settingsMap["nama_instansi"] || "Green Attendance",
+      namaInstansi: settingsMap["nama_instansi"] || "Maganghan",
       jamMasuk: settingsMap["jam_masuk"] || "08:00",
       jamKeluar: settingsMap["jam_keluar"] || "17:00",
       officeLat: settingsMap["office_lat"] || "",
@@ -46,7 +46,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
   } catch (error) {
     console.error("Get app settings admin error:", error);
     return {
-      namaInstansi: "Green Attendance",
+      namaInstansi: "Maganghan",
       jamMasuk: "08:00",
       jamKeluar: "17:00",
       officeLat: "",

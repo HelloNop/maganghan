@@ -3,10 +3,12 @@ import {
   getDashboardStatsAction,
   getWeeklyAttendanceAction,
   getRecentPendingApprovalsAction,
+  getTodayAttendanceAuditAction,
 } from "@/actions/admin";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { TodayPhotoAuditFeed } from "@/components/features/admin/TodayPhotoAuditFeed";
 import {
   Users,
   UserCheck,
@@ -19,10 +21,11 @@ import {
 import Link from "next/link";
 
 export default async function AdminDashboardPage() {
-  const [stats, weeklyData, pendingApprovals] = await Promise.all([
+  const [stats, weeklyData, pendingApprovals, todayAuditData] = await Promise.all([
     getDashboardStatsAction(),
     getWeeklyAttendanceAction(),
     getRecentPendingApprovalsAction(),
+    getTodayAttendanceAuditAction(),
   ]);
 
   const maxWeeklyCount = Math.max(
@@ -246,6 +249,9 @@ export default async function AdminDashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Audit Foto Selfie Presensi Hari Ini Section */}
+      <TodayPhotoAuditFeed initialData={todayAuditData} />
     </div>
   );
 }

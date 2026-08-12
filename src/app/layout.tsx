@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Green Attendance - Sistem Absensi Anak Magang",
+  title: "Maganghan - Sistem Absensi Anak Magang",
   description: "Sistem absensi digital modern dan efisien untuk anak magang.",
 };
 

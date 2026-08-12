@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, attendance, leaveRequests } from "@/lib/db/schema";
+import { users, attendance, leaveRequests, workUnits, positions } from "@/lib/db/schema";
 import { eq, and, count, sql, gte, lte } from "drizzle-orm";
 
 function getTodayDateString(): string {
@@ -202,3 +202,65 @@ export async function getRecentPendingApprovalsAction(): Promise<
     return [];
   }
 }
+
+export interface TodayAttendanceAuditItem {
+  id: string;
+  userId: string;
+  nama: string;
+  email: string;
+  unitKerja: string | null;
+  posisi: string | null;
+  jamMasuk: Date | null;
+  jamKeluar: Date | null;
+  fotoMasukUrl: string | null;
+  fotoKeluarUrl: string | null;
+  lokasiMasuk: string | null;
+  lokasiKeluar: string | null;
+  status: "hadir" | "telat" | "alpha" | "izin" | "sakit";
+}
+
+export async function getTodayAttendanceAuditAction(
+  filterStatus?: string
+): Promise<TodayAttendanceAuditItem[]> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") return [];
+
+  const todayStr = getTodayDateString();
+
+  try {
+    const conditions = [eq(attendance.tanggal, todayStr)];
+
+    if (filterStatus && filterStatus !== "all") {
+      conditions.push(eq(attendance.status, filterStatus as any));
+    }
+
+    const results = await db
+      .select({
+        id: attendance.id,
+        userId: attendance.userId,
+        nama: users.nama,
+        email: users.email,
+        unitKerja: workUnits.nama,
+        posisi: positions.nama,
+        jamMasuk: attendance.jamMasuk,
+        jamKeluar: attendance.jamKeluar,
+        fotoMasukUrl: attendance.fotoMasukUrl,
+        fotoKeluarUrl: attendance.fotoKeluarUrl,
+        lokasiMasuk: attendance.lokasiMasuk,
+        lokasiKeluar: attendance.lokasiKeluar,
+        status: attendance.status,
+      })
+      .from(attendance)
+      .innerJoin(users, eq(attendance.userId, users.id))
+      .leftJoin(workUnits, eq(users.unitKerjaId, workUnits.id))
+      .leftJoin(positions, eq(users.posisiId, positions.id))
+      .where(and(...conditions))
+      .orderBy(sql`${attendance.jamMasuk} DESC`);
+
+    return results;
+  } catch (error) {
+    console.error("Get today attendance audit error:", error);
+    return [];
+  }
+}
+

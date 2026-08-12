@@ -1,18 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction } from "@/actions/auth";
+import { getAppNameAction } from "@/actions/attendance";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Lock, Mail, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [appName, setAppName] = useState("Maganghan");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    getAppNameAction().then((name) => {
+      if (name) setAppName(name);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +50,7 @@ export default function LoginPage() {
             <ShieldCheck className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-[#1a1c1c] tracking-tight">
-            Green Attendance
+            {appName}
           </h1>
           <p className="text-sm text-[#6d7a78] mt-1">
             Masuk ke sistem absensi anak magang

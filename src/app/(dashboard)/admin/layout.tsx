@@ -17,7 +17,7 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  const instansiName = (await getAppSetting("nama_instansi")) || "Green Attendance";
+  const instansiName = (await getAppSetting("nama_instansi")) || "Maganghan";
 
   return (
     <div className="min-h-screen bg-[#f4f6f6]">
