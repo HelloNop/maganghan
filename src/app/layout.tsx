@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { Suspense } from "react";
+import { TopProgressBar } from "@/components/ui/TopProgressBar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +30,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={inter.variable}>
       <body className="bg-[#f9f9f9] text-[#1a1c1c] antialiased selection:bg-[#006761]/20">
+        <Suspense fallback={null}>
+          <TopProgressBar />
+        </Suspense>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
