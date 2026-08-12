@@ -1,5 +1,7 @@
 "use server";
 
+import { getWibDateString } from "@/lib/utils/date";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { leaveRequests, users, attendance } from "@/lib/db/schema";
@@ -106,7 +108,7 @@ export async function approveLeaveRequestAction(id: string) {
         d <= endDate;
         d.setDate(d.getDate() + 1)
       ) {
-        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const dateStr = getWibDateString(d);
 
         // Check if attendance record already exists
         const existing = await tx

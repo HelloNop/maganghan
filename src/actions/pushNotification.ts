@@ -1,5 +1,7 @@
 "use server";
 
+import { getWibDateString } from "@/lib/utils/date";
+
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { pushSubscriptions, users, attendance } from "@/lib/db/schema";
@@ -161,8 +163,7 @@ export async function sendAttendanceReminderPushAction() {
   }
 
   try {
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const todayStr = getWibDateString();
 
     // 1. Get active interns
     const activeInterns = await db

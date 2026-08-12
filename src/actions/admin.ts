@@ -5,12 +5,10 @@ import { db } from "@/lib/db";
 import { users, attendance, leaveRequests, workUnits, positions } from "@/lib/db/schema";
 import { eq, and, count, sql, gte, lte } from "drizzle-orm";
 
+import { getWibDateString } from "@/lib/utils/date";
+
 function getTodayDateString(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getWibDateString();
 }
 
 export interface DashboardStats {
@@ -113,8 +111,8 @@ export async function getWeeklyAttendanceAction(): Promise<WeeklyAttendanceData[
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - 6);
 
-    const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
-    const endDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const startDateStr = getWibDateString(startDate);
+    const endDateStr = getWibDateString(today);
 
     const records = await db
       .select({
@@ -142,7 +140,7 @@ export async function getWeeklyAttendanceAction(): Promise<WeeklyAttendanceData[
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const dateStr = getWibDateString(date);
 
       const hadir = countMap.get(`${dateStr}_hadir`) || 0;
       const telat = countMap.get(`${dateStr}_telat`) || 0;

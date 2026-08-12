@@ -10,18 +10,14 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { attendanceCheckInSchema } from "@/lib/validators/attendance";
 
+import { getWibDateString, getWibTimeString } from "@/lib/utils/date";
+
 function getTodayDateString(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getWibDateString();
 }
 
 function formatTimeString(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
+  return getWibTimeString(date);
 }
 
 export async function submitCheckInAction(

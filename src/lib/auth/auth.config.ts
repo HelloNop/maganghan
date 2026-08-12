@@ -35,4 +35,5 @@ export const authConfig: NextAuthConfig = {
     strategy: "jwt",
   },
   secret: authSecret,
+  trustHost: true,
 };
