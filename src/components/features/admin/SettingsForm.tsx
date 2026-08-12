@@ -117,13 +117,22 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Input
+            label="Jam Paling Awal Absen (Buka) *"
+            type="time"
+            value={form.jamBukaAbsen}
+            onChange={(e) => handleChange("jamBukaAbsen", e.target.value)}
+            helperText="Sebelum jam ini, check-in akan ditolak"
+            required
+          />
+
           <Input
             label="Jam Batas Masuk (Tepat Waktu) *"
             type="time"
             value={form.jamMasuk}
             onChange={(e) => handleChange("jamMasuk", e.target.value)}
-            helperText="Absen masuk setelah jam ini dianggap Terlambat"
+            helperText="Di atas jam ini dianggap Terlambat"
             required
           />
 

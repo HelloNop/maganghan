@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 
 export interface AppSettingsForm {
   namaInstansi: string;
+  jamBukaAbsen: string;
   jamMasuk: string;
   jamKeluar: string;
   officeLat: string;
@@ -20,6 +21,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
   if (!session?.user || session.user.role !== "admin") {
     return {
       namaInstansi: "Maganghan",
+      jamBukaAbsen: "06:00",
       jamMasuk: "08:00",
       jamKeluar: "17:00",
       officeLat: "",
@@ -37,6 +39,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
 
     return {
       namaInstansi: settingsMap["nama_instansi"] || "Maganghan",
+      jamBukaAbsen: settingsMap["jam_buka_absen"] || "06:00",
       jamMasuk: settingsMap["jam_masuk"] || "08:00",
       jamKeluar: settingsMap["jam_keluar"] || "17:00",
       officeLat: settingsMap["office_lat"] || "",
@@ -47,6 +50,7 @@ export async function getAppSettingsForAdminAction(): Promise<AppSettingsForm> {
     console.error("Get app settings admin error:", error);
     return {
       namaInstansi: "Maganghan",
+      jamBukaAbsen: "06:00",
       jamMasuk: "08:00",
       jamKeluar: "17:00",
       officeLat: "",
@@ -65,6 +69,7 @@ export async function updateAppSettingsAction(data: AppSettingsForm) {
   try {
     const settingsToUpdate = [
       { key: "nama_instansi", value: data.namaInstansi.trim(), description: "Nama instansi yang tampil di aplikasi" },
+      { key: "jam_buka_absen", value: data.jamBukaAbsen.trim(), description: "Jam paling awal absen masuk dibuka (HH:mm)" },
       { key: "jam_masuk", value: data.jamMasuk.trim(), description: "Jam batas tepat waktu (HH:mm)" },
       { key: "jam_keluar", value: data.jamKeluar.trim(), description: "Jam minimal absen keluar (HH:mm)" },
       { key: "office_lat", value: data.officeLat.trim(), description: "Latitude lokasi kantor" },
