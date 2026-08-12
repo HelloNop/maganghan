@@ -12,7 +12,7 @@ import {
 import { calculateDistanceInMeters } from "@/lib/utils/geo";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ArrowLeft, MapPin, CheckCircle2, AlertTriangle, LogOut, ShieldAlert } from "lucide-react";
+import { ArrowLeft, MapPin, CheckCircle2, AlertTriangle, LogOut, ShieldAlert, CalendarOff } from "lucide-react";
 import Link from "next/link";
 
 export default function AbsenPage() {
@@ -33,6 +33,8 @@ export default function AbsenPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  const isLeaveOrSakit = todayRecord?.status === "izin" || todayRecord?.status === "sakit";
 
   // Fetch initial today's attendance status & office location settings
   useEffect(() => {
@@ -174,20 +176,33 @@ export default function AbsenPage() {
       </div>
 
       {/* Mode Switcher if checkin already done */}
-      {todayRecord?.jamMasuk && !todayRecord?.jamKeluar && (
-        <div className="flex bg-gray-100 p-1 rounded-2xl">
+      {!isLeaveOrSakit && todayRecord?.jamMasuk && !todayRecord?.jamKeluar && (
+        <div className="flex bg-amber-50 p-1 rounded-2xl border border-amber-200/60">
           <button
             onClick={() => setMode("checkout")}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[#006761] text-white shadow-sm flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm flex items-center justify-center gap-1.5"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Check-Out Saja
+            <LogOut className="w-4 h-4" />
+            Mode Absen Keluar Active
           </button>
         </div>
       )}
 
+      {/* Leave/Sakit Approved Message */}
+      {isLeaveOrSakit && (
+        <Card variant="flat" className="p-6 text-center bg-sky-50 border border-sky-100">
+          <CalendarOff className="w-12 h-12 text-sky-600 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-sky-900 mb-1">
+            Status Presensi: {todayRecord.status === "izin" ? "Izin" : "Sakit"}
+          </h2>
+          <p className="text-xs text-sky-700">
+            Pengajuan {todayRecord.status === "izin" ? "Izin" : "Sakit"} Anda telah disetujui untuk hari ini. Anda tidak perlu melakukan presensi.
+          </p>
+        </Card>
+      )}
+
       {/* Already Completed Message */}
-      {todayRecord?.jamMasuk && todayRecord?.jamKeluar && (
+      {!isLeaveOrSakit && todayRecord?.jamMasuk && todayRecord?.jamKeluar && (
         <Card variant="flat" className="p-6 text-center bg-emerald-50 border border-emerald-100">
           <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
           <h2 className="text-base font-bold text-emerald-900 mb-1">
@@ -200,7 +215,7 @@ export default function AbsenPage() {
       )}
 
       {/* Camera Capture Section */}
-      {(!todayRecord?.jamMasuk || !todayRecord?.jamKeluar) && (
+      {!isLeaveOrSakit && (!todayRecord?.jamMasuk || !todayRecord?.jamKeluar) && (
         <>
           {/* Real-time GPS Radius Warning Banner */}
           {isOutsideRadius && (
@@ -276,7 +291,11 @@ export default function AbsenPage() {
               onClick={handleSubmitAttendance}
               isLoading={isSubmitting}
               disabled={isOutsideRadius || isSubmitting}
-              className="w-full py-4 text-base font-semibold mt-2 shadow-lg shadow-[#006761]/20 disabled:opacity-50"
+              className={`w-full py-4 text-base font-semibold mt-2 shadow-lg disabled:opacity-50 ${
+                mode === "checkin"
+                  ? "bg-[#006761] hover:bg-[#00524d] text-white shadow-[#006761]/20"
+                  : "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-amber-500/25 border-none"
+              }`}
             >
               {mode === "checkin" ? "Kirim Absen Masuk" : "Kirim Absen Keluar"}
             </Button>

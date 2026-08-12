@@ -134,6 +134,9 @@ export async function approveLeaveRequestAction(id: string) {
 
     revalidatePath("/admin/approval");
     revalidatePath("/admin");
+    revalidatePath("/intern");
+    revalidatePath("/intern/absen");
+    revalidatePath("/intern/riwayat");
     return { success: true };
   } catch (error) {
     console.error("Approve leave request error:", error);

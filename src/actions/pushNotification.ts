@@ -10,9 +10,9 @@ import webpush from "web-push";
 // Default fallback VAPID keys if env is not configured yet
 const DEFAULT_VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  "BDY8hW_qGqR-h7fV_M34M02Yn-_sEw-3w03w03w03w03w03w03w03w03w03w03w03w03w03w03w03w03w03w03w0";
+  "BBzuS-c50FJFFHvVffDQ8ZPMbJOWaoVCr3e-w4O8WSU4b00TOOMQsDIvt1X5fjW293Ios9hLM40m9lLHKl_yspE";
 const DEFAULT_VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY || "8v-a8s7d6f5g4h3j2k1m0n9b8v7c6x5z";
+  process.env.VAPID_PRIVATE_KEY || "eawYt9x8lBq1cmA0vrW42viEyW65oyEZvAND1MsFYSs";
 
 function configureWebPush() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
@@ -104,6 +104,8 @@ export async function sendTestPushNotificationAction() {
     });
 
     let sent = 0;
+    let lastErrorDetail = "";
+
     for (const sub of subs) {
       try {
         await webpush.sendNotification(
@@ -118,19 +120,29 @@ export async function sendTestPushNotificationAction() {
         );
         sent++;
       } catch (err: unknown) {
-        console.error("Failed to send push:", err);
-        // If expired subscription (410 / 404), clean it up
-        const statusCode = (err as { statusCode?: number }).statusCode;
-        if (statusCode === 410 || statusCode === 404) {
+        const errorObj = err as { statusCode?: number; message?: string; body?: string };
+        console.error("Failed to send push notification:", sub.endpoint, errorObj);
+        lastErrorDetail = errorObj.body || errorObj.message || String(err);
+
+        const statusCode = errorObj.statusCode;
+        // Clean up expired or invalid subscriptions (400, 401, 403, 404, 410)
+        if (statusCode && [400, 401, 403, 404, 410].includes(statusCode)) {
           await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
         }
       }
     }
 
+    if (sent === 0) {
+      return {
+        error: "Gagal mengirim notifikasi. Kunci berlangganan browser Anda belum diperbarui. Silakan klik 'Nonaktifkan' lalu klik 'Aktifkan' kembali notifikasi.",
+      };
+    }
+
     return { success: true, sentCount: sent };
   } catch (error) {
     console.error("Send test push error:", error);
-    return { error: "Gagal mengirim notifikasi uji coba." };
+    const msg = error instanceof Error ? error.message : "Gagal mengirim notifikasi uji coba.";
+    return { error: msg };
   }
 }
 
@@ -222,7 +234,7 @@ export async function sendAttendanceReminderPushAction() {
       } catch (err: unknown) {
         console.error("Failed to send reminder push:", err);
         const statusCode = (err as { statusCode?: number }).statusCode;
-        if (statusCode === 410 || statusCode === 404) {
+        if (statusCode && [400, 401, 403, 404, 410].includes(statusCode)) {
           await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
         }
       }

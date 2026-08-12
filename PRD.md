@@ -32,7 +32,7 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 | Database           | PostgreSQL (provider fleksibel: Supabase, Neon, Railway, dll.) |
 | ORM                | Drizzle ORM (type-safe, serverless-friendly)         |
 | Autentikasi        | Auth.js v5 (NextAuth) — Credentials provider         |
-| Storage foto       | Cloudinary (free tier 25GB)                          |
+| Storage foto       | Cloudflare R2 (10GB free forever)                    |
 | Hosting            | Vercel                                               |
 | Face detection     | face-api.js / MediaPipe Face Detection (client-side) |
 
@@ -48,7 +48,7 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 
 - **Login** dengan akun yang dibuatkan admin (email/username + password, wajib ganti password saat login pertama)
 - **Check-in / Check-out** dengan timestamp otomatis
-- **Foto selfie** saat absen, disimpan ke Cloudinary
+- **Foto selfie** saat absen, disimpan ke Cloudflare R2
 - **Face detection** (client-side) — tombol submit nonaktif jika kamera tidak menangkap wajah
 - **Validasi lokasi**: GPS radius kantor
 - **Status otomatis**: Hadir / Telat / Alpha / Izin / Sakit (berdasarkan jam masuk yang ditentukan)
@@ -113,8 +113,8 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 | tanggal | date | |
 | jam_masuk | timestamp | nullable |
 | jam_keluar | timestamp | nullable |
-| foto_masuk_url | string | Cloudinary URL |
-| foto_keluar_url | string | Cloudinary URL |
+| foto_masuk_url | string | Cloudflare R2 / Storage URL |
+| foto_keluar_url | string | Cloudflare R2 / Storage URL |
 | lokasi_masuk | geopoint/string | lat,long atau ref QR |
 | lokasi_keluar | geopoint/string | |
 | status | enum | `hadir` \| `telat` \| `alpha` \| `izin` \| `sakit` |
@@ -127,7 +127,7 @@ Akun **tidak self-register** — dibuat oleh Admin (bisa bulk import via CSV/Exc
 | tanggal | date | |
 | jenis | enum | `izin` \| `sakit` |
 | keterangan | text | |
-| file_surat_url | string | nullable, Cloudinary URL |
+| file_surat_url | string | nullable, Cloudflare R2 / Storage URL |
 | status_approval | enum | `pending` \| `approved` \| `rejected` |
 | approved_by | FK → users | admin yang approve |
 

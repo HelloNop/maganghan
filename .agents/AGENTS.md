@@ -16,7 +16,7 @@
 | ORM              | Drizzle ORM                                  |
 | Authentication   | Auth.js v5 (Credentials provider)            |
 | Styling          | Tailwind CSS v4                              |
-| Photo Storage    | Cloudinary                                   |
+| Photo Storage    | Cloudflare R2 (10GB Free Forever)             |
 | Face Detection   | face-api.js or MediaPipe Face Detection      |
 | Hosting          | Vercel                                       |
 
@@ -60,7 +60,7 @@ src/
 ## App Settings (DB-driven)
 
 - Configurable settings (jam masuk/keluar, koordinat kantor, radius GPS, nama instansi) are stored in the `app_settings` table, NOT in environment variables.
-- Environment variables are reserved for **secrets and credentials only** (DB URL, Cloudinary keys, Auth secret).
+- Environment variables are reserved for **secrets and credentials only** (DB URL, Cloudflare R2 keys, Auth secret).
 - Use a utility function `getAppSetting(key)` to read settings from DB with caching (React `cache()` for per-request dedup).
 - Admin can update settings via the admin dashboard (Fase 2). During Fase 1, settings are populated via seed script.
 

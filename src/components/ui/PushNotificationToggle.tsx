@@ -23,6 +23,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function PushNotificationToggle() {
   const [isSupported, setIsSupported] = useState<boolean | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [justActivated, setJustActivated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -65,6 +66,7 @@ export function PushNotificationToggle() {
           await sub.unsubscribe();
         }
         setIsSubscribed(false);
+        setJustActivated(false);
         setMessage({ type: "success", text: "Notifikasi pengingat berhasil dinonaktifkan." });
       } else {
         // Subscribe
@@ -79,6 +81,12 @@ export function PushNotificationToggle() {
         }
 
         const vapidPublicKey = await getVapidPublicKeyAction();
+        if (!vapidPublicKey) {
+          setMessage({ type: "error", text: "VAPID Public Key belum dikonfigurasi." });
+          setIsLoading(false);
+          return;
+        }
+
         const reg = await navigator.serviceWorker.ready;
 
         const sub = await reg.pushManager.subscribe({
@@ -101,15 +109,17 @@ export function PushNotificationToggle() {
             setMessage({ type: "error", text: res.error });
           } else {
             setIsSubscribed(true);
+            setJustActivated(true);
             setMessage({ type: "success", text: "Notifikasi pengingat presensi berhasil diaktifkan!" });
           }
         } else {
           setMessage({ type: "error", text: "Gagal memproses kunci langganan notifikasi." });
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Push toggle error:", err);
-      setMessage({ type: "error", text: "Terjadi kesalahan saat mengkonfigurasi notifikasi." });
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat mengkonfigurasi notifikasi.";
+      setMessage({ type: "error", text: `Gagal notifikasi: ${errorMessage}` });
     } finally {
       setIsLoading(false);
     }
@@ -193,16 +203,18 @@ export function PushNotificationToggle() {
           <span className="text-xs text-gray-500 font-medium">
             Perangkat terhubung & siap menerima notifikasi.
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSendTest}
-            isLoading={isTesting}
-            className="text-xs py-1 px-2.5 flex items-center gap-1.5"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Kirim Uji Coba</span>
-          </Button>
+          {justActivated && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendTest}
+              isLoading={isTesting}
+              className="text-xs py-1 px-2.5 flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Kirim Uji Coba</span>
+            </Button>
+          )}
         </div>
       )}
     </div>

@@ -242,7 +242,7 @@ export function InternTable({
             size="md"
           >
             <Upload className="w-4 h-4" />
-            <span>Import CSV</span>
+            <span>Import Excel / CSV</span>
           </Button>
 
           <Button onClick={handleOpenAdd} size="md">

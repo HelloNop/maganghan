@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { RealtimeClock } from "@/components/ui/RealtimeClock";
 import { PushNotificationToggle } from "@/components/ui/PushNotificationToggle";
-import { Bell, LogIn, LogOut, Camera, CheckCircle2, ArrowRight } from "lucide-react";
+import { NotificationCenter } from "@/components/features/NotificationCenter";
+import { LogIn, LogOut, Camera, CheckCircle2, ArrowRight, CalendarOff } from "lucide-react";
 import Link from "next/link";
 
 export default async function InternDashboardPage() {
@@ -55,6 +56,7 @@ export default async function InternDashboardPage() {
 
   const isCheckedIn = !!todayAttendance?.jamMasuk;
   const isCheckedOut = !!todayAttendance?.jamKeluar;
+  const isLeaveOrSakit = todayAttendance?.status === "izin" || todayAttendance?.status === "sakit";
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,9 +70,10 @@ export default async function InternDashboardPage() {
             Selamat Datang, {userName}
           </h1>
         </div>
-        <button className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:text-[#006761] transition-colors">
-          <Bell className="w-5 h-5" />
-        </button>
+        <NotificationCenter
+          todayAttendance={todayAttendance}
+          leaveRequests={leaveRequests}
+        />
       </div>
 
       {/* Today's Summary Card */}
@@ -79,7 +82,12 @@ export default async function InternDashboardPage() {
           <h2 className="text-base font-bold text-[#1a1c1c]">
             Ringkasan Kehadiran Hari Ini
           </h2>
-          {isCheckedOut ? (
+          {isLeaveOrSakit ? (
+            <span className="px-2.5 py-1 text-[11px] font-semibold bg-sky-100 text-sky-800 rounded-full flex items-center gap-1">
+              <CalendarOff className="w-3.5 h-3.5 text-sky-600" />
+              {todayAttendance?.status === "izin" ? "Izin (Disetujui)" : "Sakit (Disetujui)"}
+            </span>
+          ) : isCheckedOut ? (
             <span className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" /> Selesai
             </span>
@@ -132,31 +140,50 @@ export default async function InternDashboardPage() {
       </div>
 
       {/* Direct Quick Action Banner */}
-      {!isCheckedOut && (
+      {isLeaveOrSakit ? (
+        <Card variant="flat" className="p-5 bg-sky-50 border border-sky-100 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-700 shrink-0">
+            <CalendarOff className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-sky-900 leading-tight">
+              Status Presensi Hari Ini: {todayAttendance?.status === "izin" ? "Izin" : "Sakit"}
+            </h3>
+            <p className="text-xs text-sky-700 mt-0.5">
+              Pengajuan {todayAttendance?.status === "izin" ? "Izin" : "Sakit"} Anda telah disetujui. Tombol presensi tidak aktif untuk hari ini.
+            </p>
+          </div>
+        </Card>
+      ) : !isCheckedOut ? (
         <Link href="/intern/absen" className="group block">
-          <Card
-            variant="accent"
-            className="p-5 flex items-center justify-between group-hover:shadow-xl group-hover:shadow-[#006761]/30 transition-all duration-200"
+          <div
+            className={`p-5 rounded-2xl flex items-center justify-between transition-all duration-200 group-hover:shadow-xl text-white ${
+              isCheckedIn
+                ? "bg-gradient-to-r from-amber-500 to-orange-600 group-hover:shadow-amber-500/25"
+                : "bg-gradient-to-r from-[#006761] to-[#00837b] group-hover:shadow-[#006761]/30"
+            }`}
           >
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0">
-                <Camera className="w-6 h-6" />
+                {isCheckedIn ? <LogOut className="w-6 h-6" /> : <Camera className="w-6 h-6" />}
               </div>
               <div>
                 <h3 className="text-base font-bold text-white leading-tight">
                   {isCheckedIn ? "Absen Keluar Sekarang" : "Absen Masuk Sekarang"}
                 </h3>
-                <p className="text-xs text-teal-100/90 mt-0.5">
-                  Klik untuk melakukan scan wajah & lokasi GPS
+                <p className="text-xs text-white/90 mt-0.5">
+                  {isCheckedIn
+                    ? "Selesai jam kerja? Klik untuk kirim foto & lokasi check-out"
+                    : "Klik untuk melakukan scan wajah & lokasi GPS"}
                 </p>
               </div>
             </div>
             <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:translate-x-1 transition-transform">
               <ArrowRight className="w-5 h-5" />
             </div>
-          </Card>
+          </div>
         </Link>
-      )}
+      ) : null}
 
       {/* Push Notification Setting */}
       <PushNotificationToggle />

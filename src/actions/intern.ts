@@ -296,11 +296,12 @@ export async function bulkImportInternsAction(
         continue;
       }
 
-      // Match unit kerja by name (case-insensitive)
+      // Match unit kerja by code OR name (case-insensitive)
       let unitKerjaId: string | null = null;
       if (row.unit_kerja) {
+        const val = row.unit_kerja.toLowerCase().trim();
         const match = allWorkUnits.find(
-          (u) => u.nama.toLowerCase() === row.unit_kerja!.toLowerCase()
+          (u) => (u.kode && u.kode.toLowerCase() === val) || u.nama.toLowerCase() === val
         );
         if (match) {
           unitKerjaId = match.id;
@@ -310,8 +311,9 @@ export async function bulkImportInternsAction(
       // Match posisi by name (case-insensitive)
       let posisiId: string | null = null;
       if (row.posisi) {
+        const val = row.posisi.toLowerCase().trim();
         const match = allPositions.find(
-          (p) => p.nama.toLowerCase() === row.posisi!.toLowerCase()
+          (p) => p.nama.toLowerCase() === val
         );
         if (match) {
           posisiId = match.id;

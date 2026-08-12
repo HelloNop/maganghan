@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { bulkImportInternsAction } from "@/actions/intern";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -41,21 +41,57 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
     setParseError(null);
     setResultSummary(null);
 
-    Papa.parse<ParsedRow>(selectedFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.errors.length > 0) {
-          setParseError(`Error parsing CSV: ${results.errors[0].message}`);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bstr = event.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+
+        if (rawJson.length === 0) {
+          setParseError("File Excel/CSV kosong atau format tidak sesuai.");
           setParsedData([]);
-        } else {
-          setParsedData(results.data);
+          return;
         }
-      },
-      error: (err) => {
-        setParseError(`Gagal membaca file CSV: ${err.message}`);
-      },
-    });
+
+        const rows: ParsedRow[] = rawJson.map((row) => ({
+          nama: String(row.nama || row.Nama || "").trim(),
+          email: String(row.email || row.Email || "").trim(),
+          unit_kerja:
+            row.unit_kerja || row.Unit_Kerja || row["Unit Kerja"]
+              ? String(row.unit_kerja || row.Unit_Kerja || row["Unit Kerja"]).trim()
+              : undefined,
+          posisi:
+            row.posisi || row.Posisi
+              ? String(row.posisi || row.Posisi).trim()
+              : undefined,
+          tanggal_mulai: String(
+            row.tanggal_mulai || row.Tanggal_Mulai || row["Tanggal Mulai"] || ""
+          ).trim(),
+          tanggal_selesai: String(
+            row.tanggal_selesai || row.Tanggal_Selesai || row["Tanggal Selesai"] || ""
+          ).trim(),
+        }));
+
+        const validRows = rows.filter((r) => r.nama || r.email);
+        if (validRows.length === 0) {
+          setParseError("Tidak ditemukan data valid dalam file.");
+        } else {
+          setParsedData(validRows);
+        }
+      } catch (err: any) {
+        setParseError(`Gagal membaca file Excel/CSV: ${err?.message || "Format file tidak didukung"}`);
+        setParsedData([]);
+      }
+    };
+
+    reader.onerror = () => {
+      setParseError("Gagal membaca file dari komputer.");
+    };
+
+    reader.readAsBinaryString(selectedFile);
   };
 
   const handleImport = async () => {
@@ -77,17 +113,29 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8,nama,email,unit_kerja,posisi,tanggal_mulai,tanggal_selesai\n" +
-      "Budi Santoso,budi@example.com,Divisi IT,Frontend Developer,2026-08-01,2026-11-30\n" +
-      "Siti Rahma,siti@example.com,Sekretariat,Staff Admin,2026-08-01,2026-11-30";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "template_import_anak_magang.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const templateData = [
+      {
+        nama: "Budi Santoso",
+        email: "budi@example.com",
+        unit_kerja: "Divisi IT",
+        posisi: "Frontend Developer",
+        tanggal_mulai: "2026-08-01",
+        tanggal_selesai: "2026-11-30",
+      },
+      {
+        nama: "Siti Rahma",
+        email: "siti@example.com",
+        unit_kerja: "Sekretariat",
+        posisi: "Staff Admin",
+        tanggal_mulai: "2026-08-01",
+        tanggal_selesai: "2026-11-30",
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
+    XLSX.writeFile(wb, "template_import_anak_magang.xlsx");
   };
 
   const handleCloseModal = () => {
@@ -105,7 +153,7 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={handleCloseModal}
-      title="Bulk Import Data Anak Magang (CSV)"
+      title="Bulk Import Data Anak Magang (Excel / CSV)"
     >
       <div className="space-y-4 mt-2">
         {/* Success Result Summary */}
@@ -151,7 +199,7 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
                 <FileSpreadsheet className="w-5 h-5 text-[#006761]" />
                 <div>
                   <h4 className="text-xs font-bold text-[#1a1c1c]">
-                    Gunakan Format Template CSV
+                    Gunakan Format Template Excel (.xlsx)
                   </h4>
                   <p className="text-[11px] text-gray-500">
                     Kolom: nama, email, unit_kerja, posisi, tanggal_mulai, tanggal_selesai
@@ -164,7 +212,7 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
                 type="button"
                 onClick={handleDownloadTemplate}
               >
-                Unduh Template
+                Unduh Template Excel
               </Button>
             </div>
 
@@ -179,13 +227,13 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
             <div className="border-2 border-dashed border-gray-200 hover:border-[#006761] rounded-2xl p-6 text-center transition-colors">
               <input
                 type="file"
-                accept=".csv"
-                id="csv-file-input"
+                accept=".xlsx, .xls, .csv"
+                id="excel-file-input"
                 className="hidden"
                 onChange={handleFileChange}
               />
               <label
-                htmlFor="csv-file-input"
+                htmlFor="excel-file-input"
                 className="cursor-pointer flex flex-col items-center gap-2"
               >
                 <div className="w-10 h-10 rounded-full bg-[#006761]/10 flex items-center justify-center text-[#006761]">
@@ -203,10 +251,10 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
                 ) : (
                   <div>
                     <p className="text-sm font-semibold text-[#1a1c1c]">
-                      Klik untuk memilih file CSV
+                      Klik untuk memilih file Excel atau CSV
                     </p>
                     <p className="text-xs text-gray-400">
-                      Format file .csv (Maks. 5MB)
+                      Format file .xlsx, .xls, atau .csv (Maks. 5MB)
                     </p>
                   </div>
                 )}
@@ -230,8 +278,8 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
                       <tr key={idx}>
                         <td className="p-2 font-medium">{row.nama}</td>
                         <td className="p-2 text-gray-500">{row.email}</td>
-                        <td className="p-2 text-gray-500">{row.unit_kerja || "-"}</td>
-                        <td className="p-2 text-gray-500">{row.posisi || "-"}</td>
+                        <td className="p-2 text-gray-[#006761]">{row.unit_kerja || "-"}</td>
+                        <td className="p-2 text-gray-[#006761]">{row.posisi || "-"}</td>
                       </tr>
                     ))}
                   </tbody>

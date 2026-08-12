@@ -31,6 +31,11 @@ export function LeaveRequestForm() {
       return;
     }
 
+    if (tanggalMulai > tanggalSelesai) {
+      setError("Tanggal mulai tidak boleh lebih dari tanggal selesai.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = new FormData();

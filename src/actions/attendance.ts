@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { attendance } from "@/lib/db/schema";
 import { getAppSetting } from "@/lib/db/settings";
 import { calculateDistanceInMeters } from "@/lib/utils/geo";
-import { uploadImageToCloudinary } from "@/lib/utils/cloudinary";
+import { uploadImageToR2 } from "@/lib/utils/r2";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -46,8 +46,13 @@ export async function submitCheckInAction(
       )
       .limit(1);
 
-    if (existing.length > 0 && existing[0].jamMasuk) {
-      return { error: "Anda sudah melakukan check-in hari ini." };
+    if (existing.length > 0) {
+      if (existing[0].status === "izin" || existing[0].status === "sakit") {
+        return { error: "Anda sedang dalam masa Izin/Sakit yang telah disetujui hari ini." };
+      }
+      if (existing[0].jamMasuk) {
+        return { error: "Anda sudah melakukan check-in hari ini." };
+      }
     }
 
     // 2. Fetch app settings from DB in parallel
@@ -86,7 +91,7 @@ export async function submitCheckInAction(
     }
 
     // 4. Upload photo to Cloudinary
-    const fotoUrl = await uploadImageToCloudinary(fotoDataUrl, "checkin");
+    const fotoUrl = await uploadImageToR2(fotoDataUrl, "checkin");
 
     // 5. Determine status (hadir vs telat)
     const now = new Date();
@@ -153,6 +158,9 @@ export async function submitCheckOutAction(
       .limit(1);
 
     if (existing.length === 0 || !existing[0].jamMasuk) {
+      if (existing.length > 0 && (existing[0].status === "izin" || existing[0].status === "sakit")) {
+        return { error: "Anda sedang dalam masa Izin/Sakit yang telah disetujui hari ini." };
+      }
       return { error: "Anda belum melakukan check-in hari ini." };
     }
 
@@ -191,7 +199,7 @@ export async function submitCheckOutAction(
       }
     }
 
-    const fotoUrl = await uploadImageToCloudinary(fotoDataUrl, "checkout");
+    const fotoUrl = await uploadImageToR2(fotoDataUrl, "checkout");
     const now = new Date();
     const lokasiStr = `${userLat.toFixed(6)},${userLng.toFixed(6)}`;
 
