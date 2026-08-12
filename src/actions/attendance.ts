@@ -62,16 +62,28 @@ export async function submitCheckInAction(
     }
 
     // 2. Fetch app settings from DB in parallel
-    const [officeLatStr, officeLngStr, officeRadiusStr, jamMasukSettingRaw] =
+    const [officeLatStr, officeLngStr, officeRadiusStr, jamMasukSettingRaw, jamBukaSettingRaw] =
       await Promise.all([
         getAppSetting("office_lat"),
         getAppSetting("office_lng"),
         getAppSetting("office_radius_m"),
         getAppSetting("jam_masuk"),
+        getAppSetting("jam_buka_absen"),
       ]);
 
     const jamMasukSetting = jamMasukSettingRaw || "08:00";
+    const jamBukaSetting = jamBukaSettingRaw || "06:00";
     const officeRadiusM = parseInt(officeRadiusStr || "100", 10);
+
+    const now = new Date();
+    const currentTimeStr = formatTimeString(now);
+
+    // Check if attendance is opened yet
+    if (currentTimeStr < jamBukaSetting) {
+      return {
+        error: `Absen masuk belum dibuka. Absen masuk baru bisa dilakukan mulai pukul ${jamBukaSetting} WIB.`,
+      };
+    }
 
     // 3. Validate GPS radius if office coordinates are set
     if (officeLatStr && officeLngStr && officeLatStr.trim() !== "" && officeLngStr.trim() !== "") {
@@ -100,8 +112,6 @@ export async function submitCheckInAction(
     const fotoUrl = await uploadImageToR2(fotoDataUrl, "checkin");
 
     // 5. Determine status (hadir vs telat)
-    const now = new Date();
-    const currentTimeStr = formatTimeString(now);
     const status = currentTimeStr > jamMasukSetting ? "telat" : "hadir";
     const lokasiStr = `${userLat.toFixed(6)},${userLng.toFixed(6)}`;
 

@@ -45,6 +45,11 @@ async function main() {
         description: "Radius toleransi lokasi GPS (meter)",
       },
       {
+        key: "jam_buka_absen",
+        value: "06:00",
+        description: "Jam paling awal absen masuk dibuka (sebelum ini ditolak)",
+      },
+      {
         key: "jam_masuk",
         value: "08:00",
         description: "Jam batas masuk (setelah ini dianggap terlambat)",
