@@ -160,6 +160,37 @@ export async function submitCheckOutAction(
       return { error: "Anda sudah melakukan check-out hari ini." };
     }
 
+    // Fetch office GPS settings
+    const [officeLatStr, officeLngStr, officeRadiusStr] = await Promise.all([
+      getAppSetting("office_lat"),
+      getAppSetting("office_lng"),
+      getAppSetting("office_radius_m"),
+    ]);
+
+    const officeRadiusM = parseInt(officeRadiusStr || "100", 10);
+
+    if (officeLatStr && officeLngStr && officeLatStr.trim() !== "" && officeLngStr.trim() !== "") {
+      const officeLat = parseFloat(officeLatStr);
+      const officeLng = parseFloat(officeLngStr);
+
+      if (!isNaN(officeLat) && !isNaN(officeLng)) {
+        const distanceMeters = calculateDistanceInMeters(
+          userLat,
+          userLng,
+          officeLat,
+          officeLng
+        );
+
+        if (distanceMeters > officeRadiusM) {
+          return {
+            error: `Lokasi Anda berada di luar radius kantor (${Math.round(
+              distanceMeters
+            )}m dari kantor). Jarak maksimal ${officeRadiusM}m.`,
+          };
+        }
+      }
+    }
+
     const fotoUrl = await uploadImageToCloudinary(fotoDataUrl, "checkout");
     const now = new Date();
     const lokasiStr = `${userLat.toFixed(6)},${userLng.toFixed(6)}`;
@@ -209,4 +240,32 @@ export async function getTodayAttendanceAction() {
     console.error("Fetch today attendance error:", error);
     return null;
   }
+}
+
+export async function getOfficeLocationAction() {
+  try {
+    const [officeLatStr, officeLngStr, officeRadiusStr] = await Promise.all([
+      getAppSetting("office_lat"),
+      getAppSetting("office_lng"),
+      getAppSetting("office_radius_m"),
+    ]);
+
+    if (!officeLatStr || !officeLngStr) return null;
+
+    const lat = parseFloat(officeLatStr);
+    const lng = parseFloat(officeLngStr);
+    const radius = parseInt(officeRadiusStr || "100", 10);
+
+    if (isNaN(lat) || isNaN(lng)) return null;
+
+    return { lat, lng, radius };
+  } catch (error) {
+    console.error("Fetch office location error:", error);
+    return null;
+  }
+}
+
+export async function getAppNameAction() {
+  const name = await getAppSetting("nama_instansi");
+  return name || "Maganghan";
 }

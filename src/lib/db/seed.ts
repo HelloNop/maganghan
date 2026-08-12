@@ -70,7 +70,7 @@ async function main() {
 
   // 4. Seed Admin & Intern users
   const adminPasswordHash = await bcrypt.hash("admin123", 10);
-  const internPasswordHash = await bcrypt.hash("intern123", 10);
+  const internPasswordHash = await bcrypt.hash("magang123", 10);
 
   // Admin user
   await db

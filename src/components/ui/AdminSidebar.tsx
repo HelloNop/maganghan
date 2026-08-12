@@ -15,6 +15,8 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  UserCog,
+  User,
 } from "lucide-react";
 
 interface NavItem {
@@ -31,6 +33,7 @@ const navItems: NavItem[] = [
   { name: "Posisi", href: "/admin/posisi", icon: Briefcase },
   { name: "Approval Izin", href: "/admin/approval", icon: ClipboardCheck },
   { name: "Rekap Absensi", href: "/admin/rekap", icon: BarChart3 },
+  { name: "Kelola Admin", href: "/admin/kelola-admin", icon: UserCog },
   { name: "Pengaturan", href: "/admin/pengaturan", icon: Settings },
 ];
 
@@ -101,21 +104,30 @@ export function AdminSidebar({ userName, instansiName }: AdminSidebarProps) {
       </nav>
 
       {/* User / Logout */}
-      <div className="px-3 py-4 border-t border-white/5">
-        <div className="flex items-center gap-3 px-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#006761]/40 flex items-center justify-center text-xs font-bold text-[#96efe6]">
+      <div className="px-3 py-4 border-t border-white/5 space-y-1">
+        <Link
+          href="/admin/profile"
+          className={clsx(
+            "flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 group",
+            pathname === "/admin/profile"
+              ? "bg-[#006761]/20 text-white border border-[#006761]/40"
+              : "hover:bg-white/5 text-[#8aadab] hover:text-white"
+          )}
+        >
+          <div className="w-8 h-8 rounded-full bg-[#006761]/40 flex items-center justify-center text-xs font-bold text-[#96efe6] shrink-0">
             {userName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
+            <p className="text-sm font-medium truncate group-hover:text-white">
               {userName}
             </p>
-            <p className="text-[11px] text-[#5a8a87]">Administrator</p>
+            <p className="text-[11px] text-[#5a8a87]">Profil Saya</p>
           </div>
-        </div>
+        </Link>
+
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#8aadab] hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-[#8aadab] hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-150"
         >
           <LogOut className="w-[18px] h-[18px]" />
           <span>Keluar</span>

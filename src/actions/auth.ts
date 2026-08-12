@@ -2,7 +2,7 @@
 
 import { signIn, signOut, auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, workUnits, positions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { loginSchema, changePasswordSchema } from "@/lib/validators/auth";
@@ -91,4 +91,33 @@ export async function changePasswordAction(formData: FormData) {
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+export async function getCurrentUserProfile() {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  try {
+    const results = await db
+      .select({
+        id: users.id,
+        nama: users.nama,
+        email: users.email,
+        role: users.role,
+        unitKerja: workUnits.nama,
+        posisi: positions.nama,
+        tanggalMulai: users.tanggalMulai,
+        tanggalSelesai: users.tanggalSelesai,
+      })
+      .from(users)
+      .leftJoin(workUnits, eq(users.unitKerjaId, workUnits.id))
+      .leftJoin(positions, eq(users.posisiId, positions.id))
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    return results[0] || null;
+  } catch (error) {
+    console.error("Get user profile error:", error);
+    return null;
+  }
 }

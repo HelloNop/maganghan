@@ -7,10 +7,12 @@ import {
   submitCheckInAction,
   submitCheckOutAction,
   getTodayAttendanceAction,
+  getOfficeLocationAction,
 } from "@/actions/attendance";
+import { calculateDistanceInMeters } from "@/lib/utils/geo";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ArrowLeft, MapPin, CheckCircle2, AlertTriangle, LogIn, LogOut } from "lucide-react";
+import { ArrowLeft, MapPin, CheckCircle2, AlertTriangle, LogOut, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 export default function AbsenPage() {
@@ -20,6 +22,11 @@ export default function AbsenPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState<boolean>(true);
 
+  const [officeSetting, setOfficeSetting] = useState<{
+    lat: number;
+    lng: number;
+    radius: number;
+  } | null>(null);
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [mode, setMode] = useState<"checkin" | "checkout">("checkin");
 
@@ -27,16 +34,21 @@ export default function AbsenPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
-  // Fetch initial today's attendance status
+  // Fetch initial today's attendance status & office location settings
   useEffect(() => {
-    async function loadStatus() {
-      const record = await getTodayAttendanceAction();
+    async function loadData() {
+      const [record, office] = await Promise.all([
+        getTodayAttendanceAction(),
+        getOfficeLocationAction(),
+      ]);
       setTodayRecord(record);
+      setOfficeSetting(office);
+
       if (record?.jamMasuk && !record?.jamKeluar) {
         setMode("checkout");
       }
     }
-    loadStatus();
+    loadData();
   }, []);
 
   // Request client GPS location
@@ -58,7 +70,7 @@ export default function AbsenPage() {
       },
       (err) => {
         console.error("GPS error:", err);
-        setLocationError("Gagal mendapatkan lokasi GPS. Pastikan GPS/Lokasi diizinkan.");
+        setLocationError("Gagal mendapatkan lokasi GPS. Pastikan izin lokasi aktif.");
         setIsGettingLocation(false);
       },
       {
@@ -67,6 +79,28 @@ export default function AbsenPage() {
       }
     );
   }, []);
+
+  // Calculate distance in real-time
+  let distanceMeters: number | null = null;
+  let isOutsideRadius = false;
+  let distanceFormatted = "";
+
+  if (location && officeSetting) {
+    distanceMeters = calculateDistanceInMeters(
+      location.lat,
+      location.lng,
+      officeSetting.lat,
+      officeSetting.lng
+    );
+
+    isOutsideRadius = distanceMeters > officeSetting.radius;
+
+    if (distanceMeters >= 1000) {
+      distanceFormatted = `${(distanceMeters / 1000).toFixed(1)} km`;
+    } else {
+      distanceFormatted = `${Math.round(distanceMeters)} meter`;
+    }
+  }
 
   const handleCapture = (dataUrl: string) => {
     setPhotoDataUrl(dataUrl);
@@ -81,6 +115,13 @@ export default function AbsenPage() {
 
     if (!location) {
       setSubmitError("Lokasi GPS belum tersedia. Pastikan izin lokasi aktif.");
+      return;
+    }
+
+    if (isOutsideRadius) {
+      setSubmitError(
+        `Lokasi Anda berada di luar radius kantor (${distanceFormatted} dari kantor). Jarak maksimal ${officeSetting?.radius}m.`
+      );
       return;
     }
 
@@ -161,8 +202,23 @@ export default function AbsenPage() {
       {/* Camera Capture Section */}
       {(!todayRecord?.jamMasuk || !todayRecord?.jamKeluar) && (
         <>
+          {/* Real-time GPS Radius Warning Banner */}
+          {isOutsideRadius && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3 shadow-sm">
+              <ShieldAlert className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
+              <div>
+                <h3 className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                  Di Luar Radius Kantor
+                </h3>
+                <p className="text-xs text-rose-700 mt-0.5 leading-relaxed">
+                  Posisi Anda berjarak <strong className="font-bold text-rose-900">{distanceFormatted}</strong> dari kantor (Maksimal radius {officeSetting?.radius}m). Absensi tidak dapat diproses dari lokasi ini.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* GPS Location Status Indicator */}
-          <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-gray-50 border border-gray-100">
+          <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
             <div className="flex items-center gap-1.5 text-gray-600 font-medium">
               <MapPin className="w-4 h-4 text-[#006761]" />
               <span>
@@ -174,9 +230,15 @@ export default function AbsenPage() {
               </span>
             </div>
             {location && (
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                GPS Aktif
-              </span>
+              isOutsideRadius ? (
+                <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  🔴 {distanceFormatted} dari kantor
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  🟢 {distanceFormatted ? distanceFormatted : "Dalam Radius"}
+                </span>
+              )
             )}
           </div>
 
@@ -205,6 +267,7 @@ export default function AbsenPage() {
           <CameraCapture
             onCapture={handleCapture}
             isSubmitting={isSubmitting}
+            isOutsideRadius={isOutsideRadius}
           />
 
           {/* Submit Attendance Button */}
@@ -212,7 +275,8 @@ export default function AbsenPage() {
             <Button
               onClick={handleSubmitAttendance}
               isLoading={isSubmitting}
-              className="w-full py-4 text-base font-semibold mt-2 shadow-lg shadow-[#006761]/20"
+              disabled={isOutsideRadius || isSubmitting}
+              className="w-full py-4 text-base font-semibold mt-2 shadow-lg shadow-[#006761]/20 disabled:opacity-50"
             >
               {mode === "checkin" ? "Kirim Absen Masuk" : "Kirim Absen Keluar"}
             </Button>

@@ -6,7 +6,9 @@ import { getAppSetting } from "@/lib/db/settings";
 import { Card } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { RealtimeClock } from "@/components/ui/RealtimeClock";
-import { Bell, Clock, LogIn, LogOut, FileText } from "lucide-react";
+import { PushNotificationToggle } from "@/components/ui/PushNotificationToggle";
+import { Bell, LogIn, LogOut, Camera, CheckCircle2, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default async function InternDashboardPage() {
   const session = await auth();
@@ -51,6 +53,9 @@ export default async function InternDashboardPage() {
       })
     : "-- : --";
 
+  const isCheckedIn = !!todayAttendance?.jamMasuk;
+  const isCheckedOut = !!todayAttendance?.jamKeluar;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Top Bar Header */}
@@ -70,10 +75,26 @@ export default async function InternDashboardPage() {
 
       {/* Today's Summary Card */}
       <div>
-        <h2 className="text-lg font-bold text-[#1a1c1c] mb-3">
-          Today's Summary
-        </h2>
-        <Card variant="elevated" className="flex flex-col items-center py-6 text-center">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[#1a1c1c]">
+            Ringkasan Kehadiran Hari Ini
+          </h2>
+          {isCheckedOut ? (
+            <span className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Selesai
+            </span>
+          ) : isCheckedIn ? (
+            <span className="px-2.5 py-1 text-[11px] font-semibold bg-amber-100 text-amber-800 rounded-full">
+              Sudah Absen Masuk
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 text-[11px] font-semibold bg-teal-50 text-[#006761] rounded-full">
+              Belum Absen
+            </span>
+          )}
+        </div>
+
+        <Card variant="elevated" className="flex flex-col items-center py-6 px-4 text-center">
           <RealtimeClock />
           <p className="text-xs text-gray-500 font-medium capitalize mb-5">
             {dateFormatted}
@@ -91,7 +112,7 @@ export default async function InternDashboardPage() {
                 {jamMasukStr}
               </span>
               {todayAttendance?.status && (
-                <div className="mt-1">
+                <div className="mt-1.5">
                   <StatusChip status={todayAttendance.status} />
                 </div>
               )}
@@ -110,10 +131,46 @@ export default async function InternDashboardPage() {
         </Card>
       </div>
 
+      {/* Direct Quick Action Banner */}
+      {!isCheckedOut && (
+        <Link href="/intern/absen" className="group block">
+          <Card
+            variant="accent"
+            className="p-5 flex items-center justify-between group-hover:shadow-xl group-hover:shadow-[#006761]/30 transition-all duration-200"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0">
+                <Camera className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white leading-tight">
+                  {isCheckedIn ? "Absen Keluar Sekarang" : "Absen Masuk Sekarang"}
+                </h3>
+                <p className="text-xs text-teal-100/90 mt-0.5">
+                  Klik untuk melakukan scan wajah & lokasi GPS
+                </p>
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:translate-x-1 transition-transform">
+              <ArrowRight className="w-5 h-5" />
+            </div>
+          </Card>
+        </Link>
+      )}
+
+      {/* Push Notification Setting */}
+      <PushNotificationToggle />
+
       {/* Request Status Section */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-[#1a1c1c]">Request Status</h2>
+          <h2 className="text-base font-bold text-[#1a1c1c]">Status Pengajuan Izin</h2>
+          <Link
+            href="/intern/izin"
+            className="text-xs font-semibold text-[#006761] hover:underline"
+          >
+            + Ajukan Izin
+          </Link>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -126,7 +183,7 @@ export default async function InternDashboardPage() {
             </span>
           </Card>
 
-          <Card variant="flat" className="p-4 flex flex-col items-center text-center">
+          <Card variant="flat" className="p-4 flex flex-col items-center text-center font-medium">
             <span className="text-2xl font-bold text-emerald-600">
               {approvedLeaveRequests}
             </span>

@@ -1,11 +1,17 @@
 import React from "react";
 import { getAttendanceHistoryAction } from "@/actions/leaveRequest";
+import { getAppSetting } from "@/lib/db/settings";
 import { Card } from "@/components/ui/Card";
 import { StatusChip } from "@/components/ui/StatusChip";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Bell } from "lucide-react";
 
 export default async function RiwayatPage() {
-  const historyList = await getAttendanceHistoryAction();
+  const [historyList, instansiNameSetting] = await Promise.all([
+    getAttendanceHistoryAction(),
+    getAppSetting("nama_instansi"),
+  ]);
+
+  const instansiName = instansiNameSetting || "Maganghan";
 
   function calculateWorkHours(jamMasuk: Date | null, jamKeluar: Date | null): string {
     if (!jamMasuk || !jamKeluar) return "--";
@@ -26,17 +32,20 @@ export default async function RiwayatPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-[#006761] uppercase tracking-wider">
-            Green Attendance
+            {instansiName}
           </span>
           <h1 className="text-xl font-bold text-[#1a1c1c] tracking-tight">
             Riwayat Kehadiran
           </h1>
         </div>
+        <button className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:text-[#006761] transition-colors">
+          <Bell className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Attendance History List */}

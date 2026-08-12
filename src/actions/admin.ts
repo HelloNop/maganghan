@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, attendance, leaveRequests } from "@/lib/db/schema";
-import { eq, and, count, sql } from "drizzle-orm";
+import { eq, and, count, sql, gte, lte } from "drizzle-orm";
 
 function getTodayDateString(): string {
   const today = new Date();
@@ -110,6 +110,32 @@ export async function getWeeklyAttendanceAction(): Promise<WeeklyAttendanceData[
 
   try {
     const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 6);
+
+    const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
+    const endDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    const records = await db
+      .select({
+        tanggal: attendance.tanggal,
+        status: attendance.status,
+        count: count(),
+      })
+      .from(attendance)
+      .where(
+        and(
+          gte(attendance.tanggal, startDateStr),
+          lte(attendance.tanggal, endDateStr)
+        )
+      )
+      .groupBy(attendance.tanggal, attendance.status);
+
+    const countMap = new Map<string, number>();
+    for (const r of records) {
+      countMap.set(`${r.tanggal}_${r.status}`, r.count);
+    }
+
     const weekData: WeeklyAttendanceData[] = [];
     const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
@@ -118,24 +144,9 @@ export async function getWeeklyAttendanceAction(): Promise<WeeklyAttendanceData[
       date.setDate(date.getDate() - i);
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-      const records = await db
-        .select({
-          status: attendance.status,
-          count: count(),
-        })
-        .from(attendance)
-        .where(eq(attendance.tanggal, dateStr))
-        .groupBy(attendance.status);
-
-      let hadir = 0;
-      let telat = 0;
-      let alpha = 0;
-
-      for (const row of records) {
-        if (row.status === "hadir") hadir = row.count;
-        if (row.status === "telat") telat = row.count;
-        if (row.status === "alpha") alpha = row.count;
-      }
+      const hadir = countMap.get(`${dateStr}_hadir`) || 0;
+      const telat = countMap.get(`${dateStr}_telat`) || 0;
+      const alpha = countMap.get(`${dateStr}_alpha`) || 0;
 
       weekData.push({
         day: dayNames[date.getDay()],

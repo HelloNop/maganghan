@@ -5,6 +5,7 @@ import { AppSettingsForm, updateAppSettingsAction } from "@/actions/settings";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { AdminReminderButton } from "./AdminReminderButton";
 import {
   MapPin,
   Clock,
@@ -186,6 +187,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           required
         />
       </Card>
+
+      {/* Push Notification Broadcast Reminder Card */}
+      <AdminReminderButton />
 
       <div className="flex justify-end pt-2">
         <Button type="submit" size="lg" isLoading={isLoading}>
