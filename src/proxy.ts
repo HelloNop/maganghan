@@ -5,9 +5,8 @@ import { NextResponse } from "next/server";
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
-  const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
   const role = req.auth?.user?.role;
+  const isLoggedIn = !!req.auth?.user && (role === "admin" || role === "intern");
   const mustChangePassword = req.auth?.user?.mustChangePassword;
 
   const isAuthRoute = nextUrl.pathname.startsWith("/login");
