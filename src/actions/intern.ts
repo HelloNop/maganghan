@@ -255,6 +255,33 @@ export async function resetInternPasswordAction(id: string) {
   }
 }
 
+export async function deleteInternAction(id: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.role, "intern")))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return { error: "Data anak magang tidak ditemukan." };
+    }
+
+    await db.delete(users).where(eq(users.id, id));
+
+    revalidatePath("/admin/anak-magang");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete intern error:", error);
+    return { error: "Gagal menghapus data anak magang." };
+  }
+}
+
 export async function bulkImportInternsAction(
   rows: {
     nama: string;
@@ -289,9 +316,11 @@ export async function bulkImportInternsAction(
 
     const defaultPassword = generateDefaultPassword();
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    const seenEmailsInBatch = new Set<string>();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
+      const emailFormatted = row.email.toLowerCase().trim();
 
       if (!row.nama || !row.email || !row.tanggal_mulai || !row.tanggal_selesai) {
         errors.push({
@@ -301,17 +330,27 @@ export async function bulkImportInternsAction(
         continue;
       }
 
-      // Check email uniqueness
+      // Check intra-file duplication
+      if (seenEmailsInBatch.has(emailFormatted)) {
+        errors.push({
+          row: i + 1,
+          message: `Email ${row.email} duplikat dalam file ini.`,
+        });
+        continue;
+      }
+      seenEmailsInBatch.add(emailFormatted);
+
+      // Check email uniqueness in database
       const existing = await db
         .select({ id: users.id })
         .from(users)
-        .where(eq(users.email, row.email.toLowerCase().trim()))
+        .where(eq(users.email, emailFormatted))
         .limit(1);
 
       if (existing.length > 0) {
         errors.push({
           row: i + 1,
-          message: `Email ${row.email} sudah terdaftar.`,
+          message: `Email ${row.email} sudah terdaftar di sistem.`,
         });
         continue;
       }

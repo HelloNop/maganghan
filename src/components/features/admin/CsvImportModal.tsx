@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { bulkImportInternsAction } from "@/actions/intern";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,27 @@ interface ParsedRow {
   tanggal_selesai: string;
 }
 
+function getCellValueAsString(cell: ExcelJS.Cell): string {
+  if (cell.value === null || cell.value === undefined) return "";
+
+  if (typeof cell.value === "object") {
+    // Hyperlink: { text: "...", hyperlink: "..." }
+    if ("text" in cell.value && typeof cell.value.text === "string") {
+      return cell.value.text.trim();
+    }
+    // Formula: { result: "..." }
+    if ("result" in cell.value && cell.value.result !== undefined && cell.value.result !== null) {
+      return String(cell.value.result).trim();
+    }
+    // RichText: { richText: [...] }
+    if ("richText" in cell.value && Array.isArray(cell.value.richText)) {
+      return cell.value.richText.map((rt) => rt.text).join("").trim();
+    }
+  }
+
+  return (cell.text || String(cell.value)).trim();
+}
+
 export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
@@ -33,7 +54,7 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
     errors: { row: number; message: string }[];
   } | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -41,57 +62,64 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
     setParseError(null);
     setResultSummary(null);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const bstr = event.target?.result;
-        const workbook = XLSX.read(bstr, { type: "binary" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const rawJson = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+    try {
+      const buffer = await selectedFile.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const worksheet = workbook.worksheets[0];
 
-        if (rawJson.length === 0) {
-          setParseError("File Excel/CSV kosong atau format tidak sesuai.");
-          setParsedData([]);
-          return;
-        }
-
-        const rows: ParsedRow[] = rawJson.map((row) => ({
-          nama: String(row.nama || row.Nama || "").trim(),
-          email: String(row.email || row.Email || "").trim(),
-          unit_kerja:
-            row.unit_kerja || row.Unit_Kerja || row["Unit Kerja"]
-              ? String(row.unit_kerja || row.Unit_Kerja || row["Unit Kerja"]).trim()
-              : undefined,
-          posisi:
-            row.posisi || row.Posisi
-              ? String(row.posisi || row.Posisi).trim()
-              : undefined,
-          tanggal_mulai: String(
-            row.tanggal_mulai || row.Tanggal_Mulai || row["Tanggal Mulai"] || ""
-          ).trim(),
-          tanggal_selesai: String(
-            row.tanggal_selesai || row.Tanggal_Selesai || row["Tanggal Selesai"] || ""
-          ).trim(),
-        }));
-
-        const validRows = rows.filter((r) => r.nama || r.email);
-        if (validRows.length === 0) {
-          setParseError("Tidak ditemukan data valid dalam file.");
-        } else {
-          setParsedData(validRows);
-        }
-      } catch (err: any) {
-        setParseError(`Gagal membaca file Excel/CSV: ${err?.message || "Format file tidak didukung"}`);
+      if (!worksheet || worksheet.rowCount <= 1) {
+        setParseError("File Excel kosong atau format tidak sesuai.");
         setParsedData([]);
+        return;
       }
-    };
 
-    reader.onerror = () => {
-      setParseError("Gagal membaca file dari komputer.");
-    };
+      const rows: ParsedRow[] = [];
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell((cell, colNumber) => {
+        headers[colNumber] = getCellValueAsString(cell).toLowerCase();
+      });
 
-    reader.readAsBinaryString(selectedFile);
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const rowData: Record<string, string> = {};
+        row.eachCell((cell, colNumber) => {
+          const header = headers[colNumber];
+          if (header) {
+            rowData[header] = getCellValueAsString(cell);
+          }
+        });
+
+        const nama = rowData["nama"] || "";
+        const email = rowData["email"] || "";
+        const unit_kerja = rowData["unit_kerja"] || rowData["unit kerja"] || undefined;
+        const posisi = rowData["posisi"] || undefined;
+        const tanggal_mulai = rowData["tanggal_mulai"] || rowData["tanggal mulai"] || "";
+        const tanggal_selesai = rowData["tanggal_selesai"] || rowData["tanggal selesai"] || "";
+
+        if (nama || email) {
+          rows.push({
+            nama,
+            email,
+            unit_kerja,
+            posisi,
+            tanggal_mulai,
+            tanggal_selesai,
+          });
+        }
+      });
+
+      if (rows.length === 0) {
+        setParseError("Tidak ditemukan data valid dalam file.");
+      } else {
+        setParsedData(rows);
+      }
+    } catch (err: any) {
+      setParseError(`Gagal membaca file Excel: ${err?.message || "Format file tidak didukung"}`);
+      setParsedData([]);
+    }
   };
 
   const handleImport = async () => {
@@ -112,30 +140,44 @@ export function CsvImportModal({ isOpen, onClose }: CsvImportModalProps) {
     }
   };
 
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        nama: "Budi Santoso",
-        email: "budi@example.com",
-        unit_kerja: "Divisi IT",
-        posisi: "Frontend Developer",
-        tanggal_mulai: "2026-08-01",
-        tanggal_selesai: "2026-11-30",
-      },
-      {
-        nama: "Siti Rahma",
-        email: "siti@example.com",
-        unit_kerja: "Sekretariat",
-        posisi: "Staff Admin",
-        tanggal_mulai: "2026-08-01",
-        tanggal_selesai: "2026-11-30",
-      },
+  const handleDownloadTemplate = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Template Import");
+
+    worksheet.columns = [
+      { header: "nama", key: "nama", width: 25 },
+      { header: "email", key: "email", width: 25 },
+      { header: "unit_kerja", key: "unit_kerja", width: 20 },
+      { header: "posisi", key: "posisi", width: 20 },
+      { header: "tanggal_mulai", key: "tanggal_mulai", width: 15 },
+      { header: "tanggal_selesai", key: "tanggal_selesai", width: 15 },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
-    XLSX.writeFile(wb, "template_import_anak_magang.xlsx");
+    worksheet.addRow({
+      nama: "Budi Santoso",
+      email: "budi@example.com",
+      unit_kerja: "Divisi IT",
+      posisi: "Frontend Developer",
+      tanggal_mulai: "2026-08-01",
+      tanggal_selesai: "2026-11-30",
+    });
+    worksheet.addRow({
+      nama: "Siti Rahma",
+      email: "siti@example.com",
+      unit_kerja: "Sekretariat",
+      posisi: "Staff Admin",
+      tanggal_mulai: "2026-08-01",
+      tanggal_selesai: "2026-11-30",
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "template_import_anak_magang.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleCloseModal = () => {

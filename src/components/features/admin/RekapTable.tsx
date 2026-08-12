@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import {
   RekapItem,
   getAttendanceRekapAction,
@@ -42,40 +42,40 @@ export function RekapTable({
   currentBulan,
   currentTahun,
 }: RekapTableProps) {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<RekapItem[]>(initialData);
   const [bulan, setBulan] = useState(currentBulan);
   const [tahun, setTahun] = useState(currentTahun);
-  const [selectedUnitKerja, setSelectedUnitKerja] = useState("all");
+  const [selectedUnitKerja, setSelectedUnitKerja] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Detail Modal State
   const [selectedInternId, setSelectedInternId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isInitialMount, setIsInitialMount] = useState(true);
 
-  // Auto fetch data when filters change (React reactive state)
-  React.useEffect(() => {
-    if (isInitialMount) {
-      setIsInitialMount(false);
-      return;
-    }
-
-    let isMounted = true;
+  const handleFilterChange = async (
+    newBulan: number,
+    newTahun: number,
+    newUnitKerja: string
+  ) => {
+    setBulan(newBulan);
+    setTahun(newTahun);
+    setSelectedUnitKerja(newUnitKerja);
     setIsLoading(true);
 
-    getAttendanceRekapAction(bulan, tahun, selectedUnitKerja).then((newRekap) => {
-      if (isMounted) {
-        setData(newRekap);
-        setIsLoading(false);
-      }
-    });
+    const res = await getAttendanceRekapAction(newBulan, newTahun, newUnitKerja);
+    setData(res);
+    setIsLoading(false);
+  };
 
-    return () => {
-      isMounted = false;
-    };
-  }, [bulan, tahun, selectedUnitKerja]);
+  const filteredData = data.filter((item) => {
+    if (!search.trim()) return true;
+    const searchLower = search.toLowerCase().trim();
+    return (
+      item.nama.toLowerCase().includes(searchLower) ||
+      item.email.toLowerCase().includes(searchLower)
+    );
+  });
 
   const handleOpenDetail = (userId: string) => {
     setSelectedInternId(userId);
@@ -87,49 +87,79 @@ export function RekapTable({
     setIsExporting(true);
 
     try {
-      // Fetch full daily matrix for Tab 2
       const matrixResult = await getFullAttendanceMatrixAction(
         bulan,
         tahun,
         selectedUnitKerja
       );
 
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
       // --- TAB 1: RINGKASAN PRESENSI ---
-      const summaryRows = filteredData.map((item, idx) => ({
-        No: idx + 1,
-        Nama: item.nama,
-        Email: item.email,
-        "Unit Kerja": item.unitKerja || "-",
-        Posisi: item.posisi || "-",
-        "Hadir (Tepat Waktu)": item.hadir,
-        Terlambat: item.telat,
-        Izin: item.izin,
-        Sakit: item.sakit,
-        Alpha: item.alpha,
-        "Total Recorded Hari": item.totalHariKerja,
-        "% Kehadiran": `${item.persentaseKehadiran}%`,
-      }));
+      const summarySheet = workbook.addWorksheet("Ringkasan Presensi");
+      summarySheet.columns = [
+        { header: "No", key: "No", width: 6 },
+        { header: "Nama", key: "Nama", width: 25 },
+        { header: "Email", key: "Email", width: 25 },
+        { header: "Unit Kerja", key: "Unit Kerja", width: 20 },
+        { header: "Posisi", key: "Posisi", width: 20 },
+        { header: "Hadir (Tepat Waktu)", key: "Hadir (Tepat Waktu)", width: 20 },
+        { header: "Terlambat", key: "Terlambat", width: 12 },
+        { header: "Izin", key: "Izin", width: 10 },
+        { header: "Sakit", key: "Sakit", width: 10 },
+        { header: "Alpha", key: "Alpha", width: 10 },
+        { header: "Total Recorded Hari", key: "Total Recorded Hari", width: 20 },
+        { header: "% Kehadiran", key: "% Kehadiran", width: 15 },
+      ];
 
-      const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
-
-      const summaryWidths = summaryRows.reduce((acc: Record<string, number>, row) => {
-        Object.keys(row).forEach((key) => {
-          const valStr = String((row as Record<string, unknown>)[key]);
-          acc[key] = Math.max(acc[key] || key.length, valStr.length);
+      filteredData.forEach((item, idx) => {
+        summarySheet.addRow({
+          No: idx + 1,
+          Nama: item.nama,
+          Email: item.email,
+          "Unit Kerja": item.unitKerja || "-",
+          Posisi: item.posisi || "-",
+          "Hadir (Tepat Waktu)": item.hadir,
+          Terlambat: item.telat,
+          Izin: item.izin,
+          Sakit: item.sakit,
+          Alpha: item.alpha,
+          "Total Recorded Hari": item.totalHariKerja,
+          "% Kehadiran": `${item.persentaseKehadiran}%`,
         });
-        return acc;
-      }, {});
-      summarySheet["!cols"] = Object.keys(summaryWidths).map((k) => ({
-        wch: summaryWidths[k] + 3,
-      }));
-
-      XLSX.utils.book_append_sheet(workbook, summarySheet, "Ringkasan Presensi");
+      });
 
       // --- TAB 2: PRESENSI HARIAN (FULL MATRIX) ---
       if (matrixResult && matrixResult.items.length > 0) {
         const lastDay = matrixResult.lastDay;
+        const matrixSheet = workbook.addWorksheet("Presensi Harian (Full)");
+
+        const matrixCols: { header: string; key: string; width: number }[] = [
+          { header: "No", key: "No", width: 6 },
+          { header: "Nama", key: "Nama", width: 25 },
+          { header: "Email", key: "Email", width: 25 },
+          { header: "Unit Kerja", key: "Unit Kerja", width: 20 },
+          { header: "Posisi", key: "Posisi", width: 20 },
+        ];
+
+        for (let day = 1; day <= lastDay; day++) {
+          matrixCols.push({
+            header: `Tgl ${String(day).padStart(2, "0")}`,
+            key: `tgl_${day}`,
+            width: 14,
+          });
+        }
+
+        matrixCols.push(
+          { header: "Total Hadir", key: "total_hadir", width: 12 },
+          { header: "Total Telat", key: "total_telat", width: 12 },
+          { header: "Total Izin", key: "total_izin", width: 12 },
+          { header: "Total Sakit", key: "total_sakit", width: 12 },
+          { header: "Total Alpha", key: "total_alpha", width: 12 },
+          { header: "% Kehadiran", key: "persentase", width: 14 }
+        );
+
+        matrixSheet.columns = matrixCols;
 
         const filteredMatrixItems = matrixResult.items.filter((item) => {
           if (!search.trim()) return true;
@@ -140,7 +170,7 @@ export function RekapTable({
           );
         });
 
-        const matrixRows = filteredMatrixItems.map((item, idx) => {
+        filteredMatrixItems.forEach((item, idx) => {
           const rowObj: Record<string, unknown> = {
             No: idx + 1,
             Nama: item.nama,
@@ -150,77 +180,57 @@ export function RekapTable({
           };
 
           for (let day = 1; day <= lastDay; day++) {
-            const dateCol = `Tgl ${String(day).padStart(2, "0")}`;
+            const dateKey = `tgl_${day}`;
             const info = item.dailyStatus[day];
 
             if (!info) {
-              rowObj[dateCol] = "-";
+              rowObj[dateKey] = "-";
               continue;
             }
 
             if (info.status === "hadir") {
-              rowObj[dateCol] = info.jamMasukStr ? `H (${info.jamMasukStr})` : "Hadir";
+              rowObj[dateKey] = info.jamMasukStr ? `H (${info.jamMasukStr})` : "Hadir";
             } else if (info.status === "telat") {
-              rowObj[dateCol] = info.jamMasukStr ? `T (${info.jamMasukStr})` : "Telat";
+              rowObj[dateKey] = info.jamMasukStr ? `T (${info.jamMasukStr})` : "Telat";
             } else if (info.status === "izin") {
-              rowObj[dateCol] = "Izin";
+              rowObj[dateKey] = "Izin";
             } else if (info.status === "sakit") {
-              rowObj[dateCol] = "Sakit";
+              rowObj[dateKey] = "Sakit";
             } else if (info.status === "alpha") {
-              rowObj[dateCol] = "Alpha";
+              rowObj[dateKey] = "Alpha";
             } else if (info.status === "libur") {
-              rowObj[dateCol] = "Libur";
+              rowObj[dateKey] = "Libur";
             } else {
-              rowObj[dateCol] = "-";
+              rowObj[dateKey] = "-";
             }
           }
 
-          rowObj["Total Hadir"] = item.hadir;
-          rowObj["Total Telat"] = item.telat;
-          rowObj["Total Izin"] = item.izin;
-          rowObj["Total Sakit"] = item.sakit;
-          rowObj["Total Alpha"] = item.alpha;
-          rowObj["% Kehadiran"] = `${item.persentaseKehadiran}%`;
+          rowObj["total_hadir"] = item.hadir;
+          rowObj["total_telat"] = item.telat;
+          rowObj["total_izin"] = item.izin;
+          rowObj["total_sakit"] = item.sakit;
+          rowObj["total_alpha"] = item.alpha;
+          rowObj["persentase"] = `${item.persentaseKehadiran}%`;
 
-          return rowObj;
+          matrixSheet.addRow(rowObj);
         });
-
-        const matrixSheet = XLSX.utils.json_to_sheet(matrixRows);
-
-        const matrixWidths = matrixRows.reduce((acc: Record<string, number>, row) => {
-          Object.keys(row).forEach((key) => {
-            const valStr = String((row as Record<string, unknown>)[key]);
-            acc[key] = Math.max(acc[key] || key.length, valStr.length);
-          });
-          return acc;
-        }, {});
-        matrixSheet["!cols"] = Object.keys(matrixWidths).map((k) => ({
-          wch: Math.min(Math.max(matrixWidths[k] + 2, 8), 30),
-        }));
-
-        XLSX.utils.book_append_sheet(workbook, matrixSheet, "Presensi Harian (Full)");
       }
 
       const bulanName = BULAN_NAMES[bulan - 1];
-      XLSX.writeFile(
-        workbook,
-        `Rekap_Absensi_Lengkap_${bulanName}_${tahun}.xlsx`
-      );
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Rekap_Absensi_Lengkap_${bulanName}_${tahun}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Export error:", err);
     } finally {
       setIsExporting(false);
     }
   };
-
-  const filteredData = data.filter((item) => {
-    if (!search.trim()) return true;
-    const searchLower = search.toLowerCase().trim();
-    return (
-      item.nama.toLowerCase().includes(searchLower) ||
-      item.email.toLowerCase().includes(searchLower)
-    );
-  });
 
   const columns = [
     {

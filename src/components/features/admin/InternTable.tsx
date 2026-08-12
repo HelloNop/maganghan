@@ -5,6 +5,7 @@ import {
   InternListItem,
   toggleInternStatusAction,
   resetInternPasswordAction,
+  deleteInternAction,
 } from "@/actions/intern";
 import { WorkUnitWithCount, PositionWithCount } from "@/actions/masterData";
 import { DataTable } from "@/components/ui/DataTable";
@@ -23,6 +24,7 @@ import {
   UserCheck,
   UserX,
   User,
+  Trash2,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -75,7 +77,7 @@ export function InternTable({
   const handleResetPassword = async (item: InternListItem) => {
     if (
       !confirm(
-        `Reset password ${item.nama} menjadi default "magang123"? Pengguna akan diminta mengubah password saat login berikutnya.`
+        `Reset password ${item.nama} menjadi default? Pengguna akan diminta mengubah password saat login berikutnya.`
       )
     ) {
       return;
@@ -84,8 +86,27 @@ export function InternTable({
     const res = await resetInternPasswordAction(item.id);
     if (res?.error) {
       alert(res.error);
+    } else if (res.defaultPassword) {
+      alert(`Password ${item.nama} telah di-reset ke: ${res.defaultPassword}`);
     } else {
-      alert(`Password ${item.nama} telah di-reset ke "magang123".`);
+      alert(`Password ${item.nama} telah berhasil di-reset.`);
+    }
+  };
+
+  const handleDeleteIntern = async (item: InternListItem) => {
+    if (
+      !confirm(
+        `⚠️ PERINGATAN: Apakah Anda yakin ingin MENGHAPUS PERMANEN data anak magang "${item.nama}"?\n\nSemua riwayat presensi dan pengajuan izin yang bersangkutan akan ikut terhapus secara permanen.`
+      )
+    ) {
+      return;
+    }
+
+    const res = await deleteInternAction(item.id);
+    if (res?.error) {
+      alert(res.error);
+    } else {
+      window.location.reload();
     }
   };
 
@@ -185,16 +206,23 @@ export function InternTable({
             className={clsx(
               "p-1.5 rounded-lg transition-colors",
               row.statusAktif
-                ? "text-gray-500 hover:text-rose-600 hover:bg-rose-50"
+                ? "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
                 : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
             )}
-            title={row.statusAktif ? "Nonaktifkan Akun" : "Aktifkan Akun"}
+            title={row.statusAktif ? "Nonaktifkan Akun (Soft Delete)" : "Aktifkan Akun"}
           >
             {row.statusAktif ? (
               <UserX className="w-4 h-4" />
             ) : (
               <UserCheck className="w-4 h-4" />
             )}
+          </button>
+          <button
+            onClick={() => handleDeleteIntern(row)}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            title="Hapus Permanen (Hard Delete)"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       ),
