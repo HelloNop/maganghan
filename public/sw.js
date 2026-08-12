@@ -8,8 +8,8 @@ self.addEventListener('push', function (event) {
     const title = data.title || 'Pengingat Absensi';
     const options = {
       body: data.body || 'Jangan lupa untuk melakukan presensi hari ini!',
-      icon: data.icon || '/favicon.ico',
-      badge: data.badge || '/favicon.ico',
+      icon: data.icon || '/icon.svg',
+      badge: data.badge || '/icon.svg',
       vibrate: [100, 50, 100],
       data: {
         url: data.url || '/intern/absen',

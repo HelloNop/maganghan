@@ -10,7 +10,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:seed": "npx tsx src/lib/db/seed.ts"
+    "db:seed": "npx tsx src/lib/db/seed.ts",
+    "db:seed:fresh": "npx tsx src/lib/db/seedProd.ts --fresh",
+    "db:seed:dev:fresh": "npx tsx src/lib/db/seed.ts --fresh",
+    "db:seed:prod": "npx tsx src/lib/db/seedProd.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1108.0",

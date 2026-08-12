@@ -1,12 +1,28 @@
 import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 import { db } from "./index";
 import { workUnits, positions, users, appSettings } from "./schema";
+import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 async function main() {
-  console.log("Seeding database...");
+  const isFresh = process.argv.includes("--fresh");
+
+  console.log("Seeding database (Development)...");
+
+  if (isFresh) {
+    console.log("🧹 Clearing all existing database tables (Fresh Reset)...");
+    try {
+      await db.execute(
+        sql`TRUNCATE TABLE push_subscriptions, leave_requests, attendance, users, app_settings, positions, work_units RESTART IDENTITY CASCADE;`
+      );
+      console.log("✨ All tables cleaned & reset successfully!");
+    } catch (err) {
+      console.warn("⚠️ Truncate warning:", err);
+    }
+  }
 
   // 1. Seed Work Units
   const [divisiIT] = await db
