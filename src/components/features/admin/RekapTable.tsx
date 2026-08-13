@@ -351,7 +351,7 @@ export function RekapTable({
             </label>
             <select
               value={bulan}
-              onChange={(e) => setBulan(Number(e.target.value))}
+              onChange={(e) => handleFilterChange(Number(e.target.value), tahun, selectedUnitKerja)}
               className="w-full pl-3.5 pr-10 py-2.5 bg-[#f5f5f5] text-[#1a1c1c] font-medium text-sm rounded-xl border border-transparent transition-all focus:outline-none focus:bg-white focus:border-[#006761] focus:ring-2 focus:ring-[#006761]/15 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M6%208L1%203h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_14px_center] bg-no-repeat cursor-pointer"
             >
               {BULAN_NAMES.map((name, idx) => (
@@ -368,7 +368,7 @@ export function RekapTable({
             </label>
             <select
               value={tahun}
-              onChange={(e) => setTahun(Number(e.target.value))}
+              onChange={(e) => handleFilterChange(bulan, Number(e.target.value), selectedUnitKerja)}
               className="w-full pl-3.5 pr-10 py-2.5 bg-[#f5f5f5] text-[#1a1c1c] font-medium text-sm rounded-xl border border-transparent transition-all focus:outline-none focus:bg-white focus:border-[#006761] focus:ring-2 focus:ring-[#006761]/15 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M6%208L1%203h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_14px_center] bg-no-repeat cursor-pointer"
             >
               {[2025, 2026, 2027].map((y) => (
@@ -385,7 +385,7 @@ export function RekapTable({
             </label>
             <select
               value={selectedUnitKerja}
-              onChange={(e) => setSelectedUnitKerja(e.target.value)}
+              onChange={(e) => handleFilterChange(bulan, tahun, e.target.value)}
               className="w-full pl-3.5 pr-10 py-2.5 bg-[#f5f5f5] text-[#1a1c1c] font-medium text-sm rounded-xl border border-transparent transition-all focus:outline-none focus:bg-white focus:border-[#006761] focus:ring-2 focus:ring-[#006761]/15 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M6%208L1%203h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_14px_center] bg-no-repeat cursor-pointer"
             >
               <option value="all">Semua Unit Kerja</option>
