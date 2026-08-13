@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ArrowLeft, MapPin, CheckCircle2, AlertTriangle, LogOut, ShieldAlert, CalendarOff } from "lucide-react";
 import Link from "next/link";
+import { uploadToR2, dataUrlToBlob } from "@/lib/utils/uploadToR2";
 
 export default function AbsenPage() {
   const router = useRouter();
@@ -130,32 +131,43 @@ export default function AbsenPage() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    if (mode === "checkin") {
-      const res = await submitCheckInAction(photoDataUrl, location.lat, location.lng);
-      if (res.error) {
-        setSubmitError(res.error);
-        setIsSubmitting(false);
+    try {
+      // Upload photo directly to R2 via presigned URL
+      const folder = mode === "checkin" ? "checkin" : "checkout";
+      const blob = dataUrlToBlob(photoDataUrl);
+      const objectKey = await uploadToR2(blob, folder);
+
+      if (mode === "checkin") {
+        const res = await submitCheckInAction(objectKey, location.lat, location.lng);
+        if (res.error) {
+          setSubmitError(res.error);
+          setIsSubmitting(false);
+        } else {
+          setSubmitSuccess(
+            `Berhasil Check-In! Status: ${res.status === "telat" ? "Terlambat" : "Tepat Waktu"}`
+          );
+          setTimeout(() => {
+            router.push("/intern");
+            router.refresh();
+          }, 1500);
+        }
       } else {
-        setSubmitSuccess(
-          `Berhasil Check-In! Status: ${res.status === "telat" ? "Terlambat" : "Tepat Waktu"}`
-        );
-        setTimeout(() => {
-          router.push("/intern");
-          router.refresh();
-        }, 1500);
+        const res = await submitCheckOutAction(objectKey, location.lat, location.lng);
+        if (res.error) {
+          setSubmitError(res.error);
+          setIsSubmitting(false);
+        } else {
+          setSubmitSuccess("Berhasil Check-Out!");
+          setTimeout(() => {
+            router.push("/intern");
+            router.refresh();
+          }, 1500);
+        }
       }
-    } else {
-      const res = await submitCheckOutAction(photoDataUrl, location.lat, location.lng);
-      if (res.error) {
-        setSubmitError(res.error);
-        setIsSubmitting(false);
-      } else {
-        setSubmitSuccess("Berhasil Check-Out!");
-        setTimeout(() => {
-          router.push("/intern");
-          router.refresh();
-        }, 1500);
-      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal mengunggah foto.";
+      setSubmitError(message);
+      setIsSubmitting(false);
     }
   };
 

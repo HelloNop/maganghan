@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { leaveRequestSchema } from "@/lib/validators/leaveRequest";
 import { db } from "@/lib/db";
 import { leaveRequests, attendance } from "@/lib/db/schema";
-import { uploadImageToR2 } from "@/lib/utils/r2";
+import { getR2PublicUrl } from "@/lib/utils/r2";
 import { eq, desc, and, or, gte, lte, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -19,7 +19,6 @@ export async function submitLeaveRequestAction(formData: FormData) {
   const tanggalMulai = formData.get("tanggalMulai") as string;
   const tanggalSelesai = formData.get("tanggalSelesai") as string;
   const keterangan = formData.get("keterangan") as string;
-  const file = formData.get("fileSurat") as File | null;
 
   const validated = leaveRequestSchema.safeParse({
     jenis,
@@ -91,33 +90,10 @@ export async function submitLeaveRequestAction(formData: FormData) {
     }
 
     let fileSuratUrl: string | undefined = undefined;
+    const fileSuratObjectKey = formData.get("fileSuratObjectKey") as string | null;
 
-    if (file && file.size > 0) {
-      // Validate file size (max 5MB)
-      const MAX_FILE_SIZE = 5 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        return { error: "Ukuran file maksimal 5MB." };
-      }
-
-      // Validate file type
-      const ALLOWED_TYPES = [
-        "application/pdf",
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/webp",
-      ];
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        return {
-          error: "Format file tidak didukung. Gunakan PDF, JPG, PNG, atau WebP.",
-        };
-      }
-
-      const buffer = await file.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString("base64");
-      const mimeType = file.type;
-      const dataUrl = `data:${mimeType};base64,${base64}`;
-      fileSuratUrl = await uploadImageToR2(dataUrl, "surat_izin");
+    if (fileSuratObjectKey && fileSuratObjectKey.trim() !== "") {
+      fileSuratUrl = getR2PublicUrl(fileSuratObjectKey);
     }
 
     await db.insert(leaveRequests).values({

@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
  * Cloudflare R2 Storage Utility (S3-Compatible)
@@ -127,4 +128,41 @@ export async function getImageFromR2(
     console.error("GetObjectFromR2 error:", error);
     return null;
   }
+}
+
+export async function generatePresignedUploadUrl(
+  folder: string,
+  contentType: string
+): Promise<{ uploadUrl: string; objectKey: string } | null> {
+  const r2 = getR2Client();
+  if (!r2) return null;
+
+  const ext = contentType.split("/")[1] || "webp";
+  const objectKey = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+
+  const command = new PutObjectCommand({
+    Bucket: r2.bucketName,
+    Key: objectKey,
+    ContentType: contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(r2.client, command, { expiresIn: 300 });
+
+  return { uploadUrl, objectKey };
+}
+
+export function getR2PublicUrl(objectKey: string): string {
+  const r2 = getR2Client();
+
+  if (r2?.publicDomain && 
+      !r2.publicDomain.includes(".r2.dev") && 
+      !r2.publicDomain.includes("cloudflarestorage.com")) {
+    const baseUrl = r2.publicDomain.endsWith("/")
+      ? r2.publicDomain.slice(0, -1)
+      : r2.publicDomain;
+    return `${baseUrl}/${objectKey}`;
+  }
+
+  // Default to Next.js API Proxy route
+  return `/api/image/${objectKey}`;
 }

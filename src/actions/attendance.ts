@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { attendance } from "@/lib/db/schema";
 import { getAppSetting } from "@/lib/db/settings";
 import { calculateDistanceInMeters } from "@/lib/utils/geo";
-import { uploadImageToR2 } from "@/lib/utils/r2";
+import { getR2PublicUrl } from "@/lib/utils/r2";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { attendanceCheckInSchema } from "@/lib/validators/attendance";
@@ -21,7 +21,7 @@ function formatTimeString(date: Date): string {
 }
 
 export async function submitCheckInAction(
-  fotoDataUrl: string,
+  fotoObjectKey: string,
   userLat: number,
   userLng: number
 ) {
@@ -31,7 +31,7 @@ export async function submitCheckInAction(
   }
 
   const validated = attendanceCheckInSchema.safeParse({
-    fotoDataUrl,
+    fotoObjectKey,
     lat: userLat,
     lng: userLng,
   });
@@ -108,8 +108,8 @@ export async function submitCheckInAction(
       }
     }
 
-    // 4. Upload photo to Cloudinary
-    const fotoUrl = await uploadImageToR2(fotoDataUrl, "checkin");
+    // 4. Get Public URL
+    const fotoUrl = getR2PublicUrl(fotoObjectKey);
 
     // 5. Determine status (hadir vs telat)
     const status = currentTimeStr > jamMasukSetting ? "telat" : "hadir";
@@ -152,7 +152,7 @@ export async function submitCheckInAction(
 }
 
 export async function submitCheckOutAction(
-  fotoDataUrl: string,
+  fotoObjectKey: string,
   userLat: number,
   userLng: number
 ) {
@@ -162,7 +162,7 @@ export async function submitCheckOutAction(
   }
 
   const validated = attendanceCheckInSchema.safeParse({
-    fotoDataUrl,
+    fotoObjectKey,
     lat: userLat,
     lng: userLng,
   });
@@ -224,7 +224,7 @@ export async function submitCheckOutAction(
       }
     }
 
-    const fotoUrl = await uploadImageToR2(fotoDataUrl, "checkout");
+    const fotoUrl = getR2PublicUrl(fotoObjectKey);
     const now = new Date();
     const lokasiStr = `${userLat.toFixed(6)},${userLng.toFixed(6)}`;
 

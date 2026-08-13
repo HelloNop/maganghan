@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Eye,
 } from "lucide-react";
+import { uploadToR2 } from "@/lib/utils/uploadToR2";
 
 export function LeaveRequestForm() {
   const router = useRouter();
@@ -84,29 +85,42 @@ export function LeaveRequestForm() {
 
     setIsSubmitting(true);
 
-    const formData = new FormData();
-    formData.append("jenis", jenis);
-    formData.append("tanggalMulai", tanggalMulai);
-    formData.append("tanggalSelesai", tanggalSelesai);
-    formData.append("keterangan", keterangan);
-    if (fileSurat) {
-      formData.append("fileSurat", fileSurat);
-    }
+    try {
+      let fileSuratObjectKey = "";
 
-    const res = await submitLeaveRequestAction(formData);
+      // Upload file directly to R2 if present
+      if (fileSurat) {
+        fileSuratObjectKey = await uploadToR2(fileSurat, "surat_izin");
+      }
 
-    if (res?.error) {
-      setError(res.error);
+      const formData = new FormData();
+      formData.append("jenis", jenis);
+      formData.append("tanggalMulai", tanggalMulai);
+      formData.append("tanggalSelesai", tanggalSelesai);
+      formData.append("keterangan", keterangan);
+      if (fileSuratObjectKey) {
+        formData.append("fileSuratObjectKey", fileSuratObjectKey);
+      }
+
+      const res = await submitLeaveRequestAction(formData);
+
+      if (res?.error) {
+        setError(res.error);
+        setIsSubmitting(false);
+      } else {
+        setSuccess(true);
+        setIsSubmitting(false);
+        setTanggalMulai("");
+        setTanggalSelesai("");
+        setKeterangan("");
+        setFileSurat(null);
+        setFilePreviewUrl(null);
+        router.refresh();
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Gagal mengunggah file.";
+      setError(message);
       setIsSubmitting(false);
-    } else {
-      setSuccess(true);
-      setIsSubmitting(false);
-      setTanggalMulai("");
-      setTanggalSelesai("");
-      setKeterangan("");
-      setFileSurat(null);
-      setFilePreviewUrl(null);
-      router.refresh();
     }
   };
 
