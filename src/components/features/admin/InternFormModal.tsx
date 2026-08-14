@@ -98,7 +98,7 @@ export function InternFormModal({
 
         {!editingItem && (
           <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs">
-            Password awal untuk login baru adalah <strong className="font-mono">magang123</strong>. Anak magang akan diminta mengubah password saat login pertama.
+            Password awal untuk login baru adalah <strong className="font-mono">Magang123!</strong>. Anak magang akan diminta mengubah password saat login pertama.
           </div>
         )}
 

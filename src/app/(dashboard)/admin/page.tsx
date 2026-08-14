@@ -1,4 +1,5 @@
 import React from "react";
+import { AutoRefresh } from "@/components/ui/AutoRefresh";
 import {
   getDashboardStatsAction,
   getWeeklyAttendanceAction,
@@ -35,6 +36,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
+      <AutoRefresh intervalMs={30000} />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-[#1a1c1c] tracking-tight">

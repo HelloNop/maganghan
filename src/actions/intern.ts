@@ -8,15 +8,7 @@ import { eq, and, ilike, count, sql, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
-function generateDefaultPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let password = "Mg";
-  for (let i = 0; i < 6; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  password += "!";
-  return password;
-}
+const DEFAULT_PASSWORD = "Magang123!";
 
 export interface InternListItem {
   id: string;
@@ -122,7 +114,7 @@ export async function createInternAction(data: {
       return { error: "Email sudah terdaftar." };
     }
 
-    const defaultPassword = generateDefaultPassword();
+    const defaultPassword = DEFAULT_PASSWORD;
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     await db.insert(users).values({
@@ -236,7 +228,7 @@ export async function resetInternPasswordAction(id: string) {
   }
 
   try {
-    const defaultPassword = generateDefaultPassword();
+    const defaultPassword = DEFAULT_PASSWORD;
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     await db
@@ -314,7 +306,7 @@ export async function bulkImportInternsAction(
     const allWorkUnits = await db.select().from(workUnits);
     const allPositions = await db.select().from(positions);
 
-    const defaultPassword = generateDefaultPassword();
+    const defaultPassword = DEFAULT_PASSWORD;
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
     const seenEmailsInBatch = new Set<string>();
 
