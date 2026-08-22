@@ -1,46 +1,28 @@
 /**
- * Client-side utility to upload files directly to Cloudflare R2 via Presigned URL.
- * Bypasses Vercel Serverless Functions for better performance.
+ * Client-side utility to upload files to Cloudflare R2 via Next.js backend API.
+ * Avoids browser CORS and network blocking issues with direct presigned URLs.
  */
-
-interface PresignResponse {
-  uploadUrl: string;
-  objectKey: string;
-}
 
 export async function uploadToR2(
   file: Blob,
   folder: string
 ): Promise<string> {
-  // 1. Get presigned URL from our API
-  const presignRes = await fetch("/api/upload/presign", {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+
+  const res = await fetch("/api/upload", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      folder,
-      contentType: file.type || "image/webp",
-    }),
+    body: formData,
   });
 
-  if (!presignRes.ok) {
-    const err = await presignRes.json();
-    throw new Error(err.error || "Gagal mendapatkan URL upload.");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Gagal mengunggah foto. Silakan coba lagi.");
   }
 
-  const { uploadUrl, objectKey }: PresignResponse = await presignRes.json();
-
-  // 2. Upload directly to R2
-  const uploadRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "image/webp" },
-    body: file,
-  });
-
-  if (!uploadRes.ok) {
-    throw new Error("Gagal mengunggah file. Silakan coba lagi.");
-  }
-
-  return objectKey;
+  const data = await res.json();
+  return data.objectKey;
 }
 
 /**

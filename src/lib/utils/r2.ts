@@ -130,6 +130,36 @@ export async function getImageFromR2(
   }
 }
 
+export async function uploadBufferToR2(
+  buffer: Buffer,
+  contentType: string,
+  folder: string = "attendance"
+): Promise<{ objectKey: string } | null> {
+  const r2 = getR2Client();
+  if (!r2) {
+    console.error("Cloudflare R2 credentials not configured");
+    return null;
+  }
+
+  try {
+    const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") || "webp";
+    const objectKey = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: r2.bucketName,
+      Key: objectKey,
+      Body: buffer,
+      ContentType: contentType,
+    });
+
+    await r2.client.send(command);
+    return { objectKey };
+  } catch (error) {
+    console.error("Cloudflare R2 uploadBuffer error:", error);
+    return null;
+  }
+}
+
 export async function generatePresignedUploadUrl(
   folder: string,
   contentType: string
